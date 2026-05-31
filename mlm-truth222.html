@@ -1,0 +1,1946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The MLM Machine — Follow The Money</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+:root {
+  --bg:#0a0a0f; --surface:#12121a; --card:#1a1a28; --border:#2a2a40;
+  --accent:#ff3c3c; --gold:#f5c842; --green:#2ecc71; --blue:#3498db;
+  --purple:#9b59b6; --muted:#555570; --text:#e8e8f0; --text-dim:#8888aa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;overflow-x:hidden;}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:54px;flex-wrap:wrap;}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--accent);}
+.nav-links{display:flex;gap:0.8rem;list-style:none;flex-wrap:wrap;}
+.nav-links a{color:var(--text-dim);text-decoration:none;font-size:0.55rem;letter-spacing:1px;text-transform:uppercase;transition:color 0.2s;}
+.nav-links a:hover{color:var(--accent);}
+
+#hero{position:relative;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden;}
+#hero-canvas{position:absolute;inset:0;z-index:0;}
+.hero-content{position:relative;z-index:2;padding:2rem;}
+.hero-label{font-size:0.65rem;letter-spacing:4px;text-transform:uppercase;color:var(--accent);margin-bottom:1rem;animation:fadeUp 0.8s ease both;}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,12vw,10rem);line-height:0.9;letter-spacing:2px;animation:fadeUp 0.8s 0.15s ease both;}
+h1 span{color:var(--accent);}
+.hero-sub{margin-top:1.5rem;font-size:0.85rem;color:var(--text-dim);max-width:480px;line-height:1.8;animation:fadeUp 0.8s 0.3s ease both;}
+.scroll-cue{margin-top:3rem;font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);animation:pulse 2s infinite;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px rgba(245,200,66,0.3)}50%{box-shadow:0 0 24px rgba(245,200,66,0.7)}}
+@keyframes blamePulse{0%,100%{transform:scale(1);opacity:0.8}50%{transform:scale(1.04);opacity:1}}
+@keyframes spinSlow{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+section{padding:6rem 2rem;max-width:1100px;margin:0 auto;}
+.section-label{font-size:0.6rem;letter-spacing:4px;text-transform:uppercase;color:var(--accent);margin-bottom:0.5rem;}
+h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.5rem,6vw,5rem);letter-spacing:1px;line-height:1;margin-bottom:1rem;}
+h2 em{color:var(--gold);font-style:normal;}
+.lead{color:var(--text-dim);font-size:0.82rem;line-height:1.9;max-width:640px;margin-bottom:3rem;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2rem;}
+.divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);}
+.highlight-box{border-left:3px solid var(--accent);padding:1rem 1.5rem;background:rgba(255,60,60,0.05);border-radius:0 4px 4px 0;margin:1.5rem 0;font-size:0.78rem;line-height:1.8;color:var(--text-dim);}
+.highlight-box strong{color:var(--text);}
+.gold-box{border-left:3px solid var(--gold)!important;background:rgba(245,200,66,0.05)!important;}
+.green-box{border-left:3px solid var(--green)!important;background:rgba(46,204,113,0.05)!important;}
+.purple-box{border-left:3px solid var(--purple)!important;background:rgba(155,89,182,0.05)!important;}
+
+.slider-wrap{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem;}
+.slider-wrap label{font-size:0.65rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);display:block;margin-bottom:0.8rem;}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--border);border-radius:2px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--accent);border-radius:50%;cursor:pointer;}
+.slider-val{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--gold);margin-top:0.3rem;}
+.btn{font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;padding:0.7rem 1.5rem;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;border-radius:2px;transition:all 0.2s;}
+.btn:hover,.btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.gold-btn{border-color:var(--gold);color:var(--gold);}
+.btn.gold-btn:hover,.btn.gold-btn.active{background:var(--gold);color:#000;}
+
+/* PYRAMID */
+#pyramid-section{padding-top:4rem;}
+.pyramid-container{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:start;}
+@media(max-width:700px){.pyramid-container{grid-template-columns:1fr;}}
+#pyramid-canvas-wrap{position:relative;background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;height:400px;}
+#pyramid-canvas{width:100%;height:100%;display:block;}
+.pyramid-stats{display:flex;flex-direction:column;gap:1.2rem;}
+.stat-block{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.2rem 1.5rem;}
+.stat-label{font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.3rem;}
+.stat-value{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:1px;}
+.stat-value.red{color:var(--accent);}.stat-value.gold{color:var(--gold);}.stat-value.green{color:var(--green);}
+
+/* WORLD */
+#world-section{background:var(--surface);padding:6rem 0;}
+#world-section>.inner{max-width:1100px;margin:0 auto;padding:0 2rem;}
+#world-canvas-wrap{position:relative;margin-top:2rem;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:#080810;}
+#world-canvas{width:100%;display:block;}
+.world-controls{display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.5rem;}
+.world-stat-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-top:1.5rem;}
+.world-stat{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1rem 1.2rem;}
+.world-stat-num{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent);}
+.world-stat-desc{font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-top:0.2rem;line-height:1.5;}
+
+/* COST */
+.cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-bottom:2rem;}
+@media(max-width:680px){.cost-grid{grid-template-columns:1fr;}}
+.product-compare{background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.pc-header{padding:1rem 1.5rem;font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;border-bottom:1px solid var(--border);}
+.pc-header.mlm{color:var(--accent);background:rgba(255,60,60,0.05);}
+.pc-header.real{color:var(--green);background:rgba(46,204,113,0.05);}
+.pc-item{display:flex;justify-content:space-between;align-items:center;padding:0.9rem 1.5rem;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.75rem;}
+.pc-item:last-child{border-bottom:none;}
+.pc-price{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;}
+.pc-price.mlm{color:var(--accent);}.pc-price.real{color:var(--green);}
+#invest-canvas-wrap{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2rem;}
+.invest-controls{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;}
+@media(max-width:580px){.invest-controls{grid-template-columns:1fr;}}
+#invest-canvas{width:100%;height:260px;}
+.invest-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1.5rem;}
+@media(max-width:560px){.invest-summary{grid-template-columns:1fr;}}
+.is-block{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1rem;text-align:center;}
+.is-num{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;}
+.is-label{font-size:0.6rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-top:0.2rem;}
+
+/* INCOME */
+#income-section{background:var(--surface);padding:6rem 0;}
+#income-section>.inner{max-width:1100px;margin:0 auto;padding:0 2rem;}
+.income-bars{display:flex;flex-direction:column;gap:0.5rem;margin-top:2rem;}
+.income-row{display:grid;grid-template-columns:140px 1fr 100px;align-items:center;gap:1rem;font-size:0.65rem;}
+.income-level{color:var(--text-dim);}
+.income-bar-track{height:28px;background:var(--card);border:1px solid var(--border);border-radius:2px;overflow:hidden;}
+.income-bar-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(0.23,1,0.32,1);display:flex;align-items:center;padding-left:0.5rem;font-size:0.6rem;font-weight:700;white-space:nowrap;}
+.income-pct{color:var(--text-dim);text-align:right;}
+
+/* PSYCHOLOGY / CULT SECTION */
+#psych-section{padding:6rem 0;background:linear-gradient(180deg,#0a0a0f 0%,#0d0a18 40%,#0a0a0f 100%);}
+#psych-section>.inner{max-width:1100px;margin:0 auto;padding:0 2rem;}
+
+.secret-banner{background:linear-gradient(135deg,rgba(155,89,182,0.15),rgba(245,200,66,0.08));border:1px solid rgba(155,89,182,0.4);border-radius:4px;padding:2rem;margin-bottom:3rem;display:grid;grid-template-columns:auto 1fr;gap:2rem;align-items:center;}
+@media(max-width:600px){.secret-banner{grid-template-columns:1fr;}}
+.secret-icon{font-size:4rem;text-align:center;}
+.secret-title{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:1px;color:var(--purple);margin-bottom:0.4rem;}
+.secret-body{font-size:0.75rem;line-height:1.8;color:var(--text-dim);}
+.secret-body strong{color:var(--text);}
+.secret-body em{color:var(--accent);font-style:italic;}
+
+.psych-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:3rem;}
+@media(max-width:720px){.psych-grid{grid-template-columns:1fr;}}
+.psych-card{background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;position:relative;}
+.psych-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.psych-card.c-purple::before{background:var(--purple);}
+.psych-card.c-gold::before{background:var(--gold);}
+.psych-card.c-red::before{background:var(--accent);}
+.psych-card.c-blue::before{background:var(--blue);}
+.psych-card.c-green::before{background:var(--green);}
+.psych-head{padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);}
+.psych-icon{font-size:1.4rem;margin-bottom:0.3rem;}
+.psych-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:1px;}
+.psych-sub{font-size:0.55rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-top:0.2rem;}
+.psych-body{padding:1.2rem 1.5rem;}
+.real-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--green);margin-bottom:0.3rem;opacity:0.8;}
+.twist-label{font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:0.3rem;opacity:0.8;margin-top:0.8rem;}
+.psych-real{font-size:0.7rem;color:var(--text-dim);line-height:1.7;}
+.psych-twist{font-size:0.7rem;color:var(--accent);line-height:1.7;font-style:italic;background:rgba(255,60,60,0.05);border-radius:4px;padding:0.6rem 0.8rem;margin-top:0.3rem;}
+
+/* BLAME LOOP */
+.blame-loop-wrap{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2rem;margin-bottom:3rem;text-align:center;}
+.blame-loop-title{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:1px;color:var(--accent);margin-bottom:0.5rem;}
+.blame-loop-sub{font-size:0.65rem;color:var(--text-dim);margin-bottom:2rem;}
+#blame-canvas{width:100%;height:340px;display:block;}
+.blame-loop-note{font-size:0.68rem;color:var(--text-dim);margin-top:1rem;line-height:1.7;}
+.blame-loop-note strong{color:var(--text);}
+
+/* CONTENT FIREHOSE */
+.firehose-wrap{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2rem;margin-bottom:3rem;}
+.firehose-title{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1px;color:var(--gold);margin-bottom:0.4rem;}
+.firehose-sub{font-size:0.65rem;color:var(--text-dim);margin-bottom:1.5rem;line-height:1.7;}
+.firehose-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;}
+.fh-item{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1rem;text-align:center;}
+.fh-emoji{font-size:1.8rem;margin-bottom:0.4rem;}
+.fh-name{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;color:var(--gold);}
+.fh-cost{font-size:0.65rem;color:var(--accent);margin-top:0.2rem;}
+.fh-note{font-size:0.6rem;color:var(--text-dim);margin-top:0.3rem;line-height:1.5;}
+
+/* AI FIREHOSE */
+.ai-firehose-wrap{margin-top:2rem;background:linear-gradient(135deg,rgba(52,152,219,0.08),rgba(155,89,182,0.08));border:1px solid rgba(52,152,219,0.35);border-radius:4px;overflow:hidden;}
+.ai-firehose-header{padding:1.5rem 2rem;border-bottom:1px solid rgba(52,152,219,0.2);display:flex;align-items:center;gap:1rem;}
+.ai-firehose-badge{background:var(--blue);color:#fff;font-size:0.55rem;letter-spacing:3px;text-transform:uppercase;padding:0.3rem 0.7rem;border-radius:2px;white-space:nowrap;}
+.ai-firehose-badge.warn{background:var(--accent);}
+.ai-firehose-title{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:1px;color:var(--blue);}
+.ai-firehose-body{padding:2rem;}
+.ai-firehose-intro{font-size:0.75rem;line-height:1.8;color:var(--text-dim);margin-bottom:2rem;}
+.ai-firehose-intro strong{color:var(--text);}
+.ai-firehose-intro em{color:var(--accent);font-style:italic;}
+
+.ai-speed-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:0;margin-bottom:2rem;align-items:stretch;}
+@media(max-width:640px){.ai-speed-grid{grid-template-columns:1fr;}}
+.speed-col{background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.speed-col.ai-col{border-color:rgba(52,152,219,0.4);background:rgba(52,152,219,0.04);}
+.speed-header{padding:0.8rem 1.2rem;border-bottom:1px solid var(--border);font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;}
+.speed-header.human{color:var(--text-dim);}
+.speed-header.ai-h{color:var(--blue);border-color:rgba(52,152,219,0.3);}
+.speed-item{display:flex;justify-content:space-between;align-items:center;padding:0.65rem 1.2rem;border-bottom:1px solid rgba(255,255,255,0.03);font-size:0.68rem;gap:0.5rem;}
+.speed-item:last-child{border-bottom:none;}
+.speed-task{color:var(--text-dim);flex:1;}
+.speed-time{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;white-space:nowrap;}
+.speed-time.slow{color:var(--muted);}
+.speed-time.fast{color:var(--blue);}
+.speed-time.instant{color:var(--green);}
+.speed-vs{display:flex;align-items:center;justify-content:center;padding:0 1rem;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--border);}
+@media(max-width:640px){.speed-vs{padding:0.5rem;transform:rotate(90deg);}}
+
+.ai-multiplier-bar{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.5rem;margin-bottom:2rem;}
+.ai-mult-title{font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:1.2rem;}
+.ai-mult-row{display:grid;grid-template-columns:140px 1fr 80px;align-items:center;gap:1rem;margin-bottom:0.7rem;font-size:0.65rem;}
+.ai-mult-label{color:var(--text-dim);}
+.ai-mult-track{height:22px;background:var(--card);border-radius:2px;overflow:hidden;position:relative;}
+.ai-mult-human{height:100%;background:var(--muted);border-radius:2px;display:flex;align-items:center;padding-left:0.4rem;font-size:0.58rem;color:#fff;white-space:nowrap;}
+.ai-mult-ai{position:absolute;top:0;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:2px;display:flex;align-items:center;padding-left:0.4rem;font-size:0.58rem;color:#fff;white-space:nowrap;opacity:0;transition:all 1.2s cubic-bezier(0.23,1,0.32,1);}
+.ai-mult-x{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--blue);text-align:right;}
+
+.ai-future-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+@media(max-width:700px){.ai-future-cards{grid-template-columns:1fr;}}
+.afc{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.2rem;position:relative;overflow:hidden;}
+.afc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.afc.now::after{background:var(--green);}
+.afc.soon::after{background:var(--gold);}
+.afc.near::after{background:var(--accent);}
+.afc-status{font-size:0.5rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:0.6rem;}
+.afc.now .afc-status{color:var(--green);}
+.afc.soon .afc-status{color:var(--gold);}
+.afc.near .afc-status{color:var(--accent);}
+.afc-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;margin-bottom:0.5rem;}
+.afc-body{font-size:0.65rem;color:var(--text-dim);line-height:1.7;}
+
+.ai-warning-box{border:1px solid var(--accent);background:rgba(255,60,60,0.06);border-radius:4px;padding:1.5rem;display:grid;grid-template-columns:auto 1fr;gap:1.2rem;align-items:start;}
+.ai-warn-icon{font-size:2rem;}
+.ai-warn-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;color:var(--accent);margin-bottom:0.4rem;}
+.ai-warn-body{font-size:0.72rem;color:var(--text-dim);line-height:1.8;}
+.ai-warn-body strong{color:var(--text);}
+
+/* FUNNEL */
+#funnel-wrap{margin-top:3rem;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2rem;}
+#funnel-canvas{width:100%;height:460px;display:block;}
+
+/* QUICKSAND DEBT */
+.quicksand-wrap{margin-top:3rem;}
+.qs-title{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:1px;margin-bottom:0.5rem;}
+.qs-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;}
+@media(max-width:640px){.qs-grid{grid-template-columns:1fr;}}
+.debt-meter{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem;}
+.debt-meter-label{font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.8rem;}
+.debt-bar-track{height:20px;background:var(--surface);border-radius:10px;overflow:hidden;margin-bottom:0.5rem;}
+.debt-bar-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--gold),var(--accent));transition:width 0.6s ease;}
+.debt-amount{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--accent);}
+.debt-note{font-size:0.6rem;color:var(--text-dim);}
+
+/* QUIZ */
+#quiz-section{background:var(--surface);padding:6rem 0;}
+#quiz-section>.inner{max-width:900px;margin:0 auto;padding:0 2rem;}
+.quiz-container{background:var(--card);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.quiz-header{padding:1.5rem 2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.quiz-progress-track{height:4px;background:var(--border);border-radius:2px;flex:1;margin-left:2rem;}
+.quiz-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 0.4s ease;}
+.quiz-body{padding:2rem;}
+.quiz-company-reveal{text-align:center;margin-bottom:2rem;}
+.quiz-company-name{font-family:'Bebas Neue',sans-serif;font-size:3.5rem;letter-spacing:2px;color:var(--gold);}
+.quiz-company-type{font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-top:0.3rem;}
+.quiz-stat-display{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;}
+@media(max-width:560px){.quiz-stat-display{grid-template-columns:1fr;}}
+.qsd-block{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1rem;text-align:center;}
+.qsd-num{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--accent);}
+.qsd-label{font-size:0.58rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-top:0.2rem;}
+.quiz-question{font-size:0.85rem;line-height:1.7;color:var(--text-dim);margin-bottom:1.5rem;text-align:center;}
+.quiz-options{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-bottom:1.5rem;}
+@media(max-width:480px){.quiz-options{grid-template-columns:1fr;}}
+.quiz-option{background:var(--surface);border:2px solid var(--border);border-radius:4px;padding:0.9rem 1.2rem;cursor:pointer;font-family:'Space Mono',monospace;font-size:0.72rem;text-align:left;transition:all 0.2s;line-height:1.5;color:var(--text);}
+.quiz-option:hover:not(.locked){border-color:var(--gold);background:rgba(245,200,66,0.05);}
+.quiz-option.correct{border-color:var(--green)!important;background:rgba(46,204,113,0.1)!important;animation:glow 0.6s ease;}
+.quiz-option.wrong{border-color:var(--accent)!important;background:rgba(255,60,60,0.1)!important;animation:shake 0.4s ease;}
+.quiz-option.locked{cursor:default;}
+.quiz-feedback{padding:1.2rem;border-radius:4px;margin-bottom:1.2rem;font-size:0.75rem;line-height:1.7;display:none;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.correct-fb{background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.3);}
+.quiz-feedback.wrong-fb{background:rgba(255,60,60,0.08);border:1px solid rgba(255,60,60,0.3);}
+.quiz-nav{display:flex;justify-content:space-between;align-items:center;}
+.quiz-score-badge{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--gold);}
+.quiz-final{text-align:center;padding:3rem 2rem;}
+.quiz-final-score{font-family:'Bebas Neue',sans-serif;font-size:5rem;color:var(--gold);}
+.quiz-final-msg{font-size:0.82rem;color:var(--text-dim);line-height:1.8;max-width:480px;margin:1rem auto;}
+
+/* SOCIAL */
+#social-section{padding:6rem 0;}
+#social-section>.inner{max-width:1100px;margin:0 auto;padding:0 2rem;}
+.social-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:start;}
+@media(max-width:720px){.social-grid{grid-template-columns:1fr;}}
+.social-inputs{display:flex;flex-direction:column;gap:1rem;}
+.social-canvas-wrap{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem;}
+#social-canvas{width:100%;height:300px;display:block;}
+.social-results{display:flex;flex-direction:column;gap:0.8rem;margin-top:1.5rem;}
+.sr-row{display:flex;justify-content:space-between;align-items:center;padding:0.7rem 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:0.72rem;}
+.sr-row:last-child{border-bottom:none;}
+.sr-label{color:var(--text-dim);}
+.sr-value{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--accent);}
+.sr-value.ok{color:var(--green);}
+.relationship-viz{margin-top:2rem;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem;}
+.rel-title{font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:1rem;}
+.rel-grid{display:flex;flex-wrap:wrap;gap:0.4rem;}
+.rel-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.9rem;cursor:pointer;transition:transform 0.2s;border:2px solid transparent;}
+.rel-dot:hover{transform:scale(1.2);}
+.rel-legend{display:flex;gap:1.5rem;margin-top:1rem;flex-wrap:wrap;}
+.rel-leg-item{display:flex;align-items:center;gap:0.4rem;font-size:0.6rem;color:var(--text-dim);}
+.rel-leg-dot{width:10px;height:10px;border-radius:50%;}
+
+/* RESCUE TOOL */
+#rescue-section{padding:6rem 0;background:linear-gradient(180deg,#0a0a0f 0%,#080f0d 50%,#0a0a0f 100%);}
+#rescue-section>.inner{max-width:900px;margin:0 auto;padding:0 2rem;}
+
+.rescue-intro{background:linear-gradient(135deg,rgba(46,204,113,0.08),rgba(52,152,219,0.06));border:1px solid rgba(46,204,113,0.3);border-radius:4px;padding:2rem;margin-bottom:2.5rem;display:grid;grid-template-columns:auto 1fr;gap:1.5rem;align-items:start;}
+@media(max-width:580px){.rescue-intro{grid-template-columns:1fr;}}
+.rescue-icon{font-size:3rem;line-height:1;}
+.rescue-intro-title{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:1px;color:var(--green);margin-bottom:0.4rem;}
+.rescue-intro-body{font-size:0.75rem;line-height:1.9;color:var(--text-dim);}
+.rescue-intro-body strong{color:var(--text);}
+
+/* Step progress */
+.rescue-steps{display:flex;align-items:center;gap:0;margin-bottom:2.5rem;overflow-x:auto;padding-bottom:0.5rem;}
+.rstep{display:flex;align-items:center;gap:0;flex-shrink:0;}
+.rstep-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:var(--text-dim);background:var(--card);transition:all 0.3s;flex-shrink:0;}
+.rstep-dot.active{border-color:var(--green);color:var(--green);background:rgba(46,204,113,0.1);}
+.rstep-dot.done{border-color:var(--green);background:var(--green);color:#000;}
+.rstep-label{font-size:0.55rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-left:0.5rem;white-space:nowrap;}
+.rstep-label.active{color:var(--green);}
+.rstep-line{width:2rem;height:2px;background:var(--border);margin:0 0.3rem;flex-shrink:0;}
+.rstep-line.done{background:var(--green);}
+
+/* Step panels */
+.rescue-panel{display:none;animation:fadeUp 0.4s ease both;}
+.rescue-panel.active{display:block;}
+
+.r-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2rem;margin-bottom:1.2rem;}
+.r-card-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:1px;margin-bottom:0.3rem;}
+.r-card-sub{font-size:0.62rem;color:var(--text-dim);margin-bottom:1.2rem;line-height:1.6;}
+
+.r-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0.8rem 1rem;color:var(--text);font-family:'Space Mono',monospace;font-size:0.75rem;outline:none;transition:border-color 0.2s;}
+.r-input:focus{border-color:var(--green);}
+.r-select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0.8rem 1rem;color:var(--text);font-family:'Space Mono',monospace;font-size:0.75rem;outline:none;appearance:none;cursor:pointer;}
+.r-select:focus{border-color:var(--green);}
+.r-label{font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);display:block;margin-bottom:0.5rem;}
+.r-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+@media(max-width:560px){.r-row{grid-template-columns:1fr;}}
+.r-field{margin-bottom:1rem;}
+
+/* Product input */
+.product-list{display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1rem;}
+.product-row{display:grid;grid-template-columns:1fr 80px 80px 32px;gap:0.5rem;align-items:center;}
+@media(max-width:500px){.product-row{grid-template-columns:1fr 70px 28px;}}
+.product-row input{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0.6rem 0.8rem;color:var(--text);font-family:'Space Mono',monospace;font-size:0.7rem;outline:none;width:100%;}
+.product-row input:focus{border-color:var(--green);}
+.product-row input.qty-hide{display:none;}
+.del-btn{width:32px;height:32px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text-dim);cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;}
+.del-btn:hover{border-color:var(--accent);color:var(--accent);}
+.add-product-btn{background:none;border:1px dashed var(--border);border-radius:4px;padding:0.6rem 1rem;color:var(--text-dim);font-family:'Space Mono',monospace;font-size:0.65rem;cursor:pointer;width:100%;transition:all 0.2s;letter-spacing:1px;}
+.add-product-btn:hover{border-color:var(--green);color:var(--green);}
+
+/* Level picker */
+.level-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:0.6rem;margin-bottom:1rem;}
+.lvl-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0.7rem 0.5rem;text-align:center;cursor:pointer;transition:all 0.2s;font-size:0.62rem;color:var(--text-dim);}
+.lvl-btn:hover{border-color:var(--gold);}
+.lvl-btn.selected{border-color:var(--green);background:rgba(46,204,113,0.1);color:var(--green);}
+.lvl-btn .lvl-name{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;display:block;margin-bottom:0.2rem;}
+
+/* Navigation */
+.rescue-nav{display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem;}
+.r-btn{font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;padding:0.8rem 2rem;border-radius:4px;cursor:pointer;transition:all 0.2s;border:none;}
+.r-btn-next{background:var(--green);color:#000;}
+.r-btn-next:hover{background:#27ae60;}
+.r-btn-back{background:transparent;border:1px solid var(--border);color:var(--text-dim);}
+.r-btn-back:hover{border-color:var(--text-dim);color:var(--text);}
+.r-btn-generate{background:var(--green);color:#000;font-size:0.75rem;padding:1rem 2.5rem;}
+.r-btn-generate:hover{background:#27ae60;}
+
+/* RESULTS */
+.rescue-result-wrap{animation:fadeUp 0.5s ease both;}
+.result-header{text-align:center;padding:2.5rem 2rem;background:linear-gradient(135deg,rgba(46,204,113,0.1),rgba(52,152,219,0.06));border:1px solid rgba(46,204,113,0.25);border-radius:4px;margin-bottom:2rem;}
+.result-name{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:2px;color:var(--green);margin-bottom:0.3rem;}
+.result-sub{font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);}
+
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:2rem;}
+@media(max-width:580px){.result-grid{grid-template-columns:1fr;}}
+.rg-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem;position:relative;overflow:hidden;}
+.rg-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.rg-card.money::before{background:var(--accent);}
+.rg-card.time::before{background:var(--blue);}
+.rg-card.social::before{background:var(--purple);}
+.rg-card.opp::before{background:var(--gold);}
+.rg-icon{font-size:1.6rem;margin-bottom:0.5rem;}
+.rg-label{font-size:0.55rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.3rem;}
+.rg-value{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:1px;line-height:1;margin-bottom:0.3rem;}
+.rg-card.money .rg-value{color:var(--accent);}
+.rg-card.time .rg-value{color:var(--blue);}
+.rg-card.social .rg-value{color:var(--purple);}
+.rg-card.opp .rg-value{color:var(--gold);}
+.rg-detail{font-size:0.65rem;color:var(--text-dim);line-height:1.7;}
+
+.result-narrative{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2rem;margin-bottom:2rem;}
+.rn-title{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:1px;color:var(--green);margin-bottom:1rem;}
+.rn-body{font-size:0.75rem;line-height:2;color:var(--text-dim);}
+.rn-body strong{color:var(--text);}
+.rn-body .highlight{color:var(--green);font-weight:700;}
+.rn-body .hurt{color:var(--accent);}
+
+.what-now{background:linear-gradient(135deg,rgba(46,204,113,0.07),rgba(52,152,219,0.05));border:1px solid rgba(46,204,113,0.25);border-radius:4px;padding:2rem;margin-bottom:2rem;}
+.wn-title{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:1px;color:var(--green);margin-bottom:1.5rem;}
+.wn-step{display:grid;grid-template-columns:auto 1fr;gap:1rem;align-items:start;margin-bottom:1.2rem;padding-bottom:1.2rem;border-bottom:1px solid rgba(255,255,255,0.04);}
+.wn-step:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.wn-num{width:32px;height:32px;border-radius:50%;background:var(--green);color:#000;font-family:'Bebas Neue',sans-serif;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.wn-content-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;margin-bottom:0.3rem;}
+.wn-content-body{font-size:0.68rem;color:var(--text-dim);line-height:1.7;}
+.wn-content-body a{color:var(--blue);text-decoration:none;}
+.wn-content-body a:hover{text-decoration:underline;}
+
+.alt-paths{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:2rem;}
+@media(max-width:640px){.alt-paths{grid-template-columns:1fr;}}
+.alt-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.2rem;text-align:center;}
+.alt-emoji{font-size:2rem;margin-bottom:0.5rem;}
+.alt-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;color:var(--gold);margin-bottom:0.4rem;}
+.alt-body{font-size:0.62rem;color:var(--text-dim);line-height:1.7;}
+
+.restart-btn{display:block;width:100%;background:transparent;border:1px solid var(--border);border-radius:4px;padding:1rem;font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);cursor:pointer;transition:all 0.2s;margin-top:1rem;}
+.restart-btn:hover{border-color:var(--green);color:var(--green);}
+
+/* CTA */
+#cta-section{text-align:center;padding:6rem 2rem;max-width:700px;margin:0 auto;}
+.cta-box{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:3rem 2rem;}
+.verdict{font-family:'Bebas Neue',sans-serif;font-size:clamp(1.8rem,5vw,3.5rem);letter-spacing:1px;line-height:1.1;margin:1rem 0;color:var(--accent);}
+.verdict span{color:var(--gold);}
+.cta-text{font-size:0.78rem;color:var(--text-dim);line-height:1.9;max-width:500px;margin:0 auto;}
+footer{border-top:1px solid var(--border);text-align:center;padding:2rem;font-size:0.6rem;color:var(--muted);letter-spacing:1px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">MLM DECODED</span>
+  <ul class="nav-links">
+    <li><a href="#pyramid-section">Pyramid</a></li>
+    <li><a href="#world-section">World Limit</a></li>
+    <li><a href="#cost-section">Real Costs</a></li>
+    <li><a href="#income-section">Income Truth</a></li>
+    <li><a href="#psych-section">Mind Games</a></li>
+    <li><a href="#ai-firehose-wrap" onclick="document.querySelector('.ai-firehose-wrap').scrollIntoView({behavior:'smooth'});return false;" style="color:var(--blue);">AI Threat</a></li>
+    <li><a href="#quiz-section">Quiz</a></li>
+    <li><a href="#social-section">Social Cost</a></li>
+    <li><a href="#rescue-section" style="color:var(--green);">🤝 Rescue</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-label">An Interactive Investigation</div>
+    <h1>THE <span>MLM</span><br>MACHINE</h1>
+    <p class="hero-sub">Before the motivational speeches, the pink Cadillacs, and the "financial freedom" — follow the money. Every dollar in has a destination. Let's find it.</p>
+    <div class="scroll-cue">↓ scroll to begin ↓</div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- PYRAMID -->
+<section id="pyramid-section">
+  <div class="section-label">Chapter 01 — The Structure</div>
+  <h2>THE <em>PYRAMID</em><br>NEVER LIES</h2>
+  <p class="lead">Every MLM runs on the same mathematical structure. More people must join below you than above you — always. This isn't a bug. It's the product. Use the sliders to see the math in real time.</p>
+  <div class="pyramid-container">
+    <div>
+      <div id="pyramid-canvas-wrap"><canvas id="pyramid-canvas"></canvas></div>
+      <div style="margin-top:1rem;">
+        <div class="slider-wrap">
+          <label>Recruitment factor — how many each person recruits</label>
+          <input type="range" id="recruit-slider" min="2" max="8" value="5" step="1">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div class="slider-val" id="recruit-val">5 recruits</div>
+            <div style="font-size:0.6rem;color:var(--text-dim);">typical MLM: 3–6</div>
+          </div>
+        </div>
+        <div class="slider-wrap" style="margin-top:1rem;">
+          <label>Show levels deep</label>
+          <input type="range" id="level-slider" min="1" max="12" value="5" step="1">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div class="slider-val" id="level-val">Level 5</div>
+            <div style="font-size:0.6rem;color:var(--gold);" id="level-people-label">3,125 people</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pyramid-stats">
+      <div class="stat-block"><div class="stat-label">People at YOUR level</div><div class="stat-value gold" id="stat-at-level">3,125</div></div>
+      <div class="stat-block"><div class="stat-label">People BELOW you (your competition)</div><div class="stat-value red" id="stat-below">—</div></div>
+      <div class="stat-block"><div class="stat-label">Total in the entire structure</div><div class="stat-value" id="stat-total">3,906</div></div>
+      <div class="stat-block"><div class="stat-label">% of structure above you, collecting from you</div><div class="stat-value red" id="stat-above-pct">—</div></div>
+      <div class="highlight-box"><strong>The dirty secret:</strong> the deeper your level, the more people beside you sell the SAME products to the SAME friends — while every dollar you spend flows upward through each level above.</div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- WORLD SATURATION -->
+<section id="world-section">
+  <div class="inner">
+    <div class="section-label">Chapter 02 — The Math Breaks Reality</div>
+    <h2>AT LEVEL <em id="saturation-level-display">13</em>,<br>THE WORLD RUNS OUT</h2>
+    <p class="lead">Keep recruiting 5 people per person, level after level. Watch when the structure demands more humans than exist on Earth. This is not a theory. It is arithmetic. And it is why the bottom always collapses.</p>
+    <div id="world-canvas-wrap"><canvas id="world-canvas" height="380"></canvas></div>
+    <div class="world-controls">
+      <button class="btn active" id="btn-animate" onclick="toggleWorldAnim()">▶ Animate Growth</button>
+      <button class="btn" onclick="resetWorld()">↺ Reset</button>
+    </div>
+    <div class="world-stat-bar">
+      <div class="world-stat"><div class="world-stat-num" id="ws-level">1</div><div class="world-stat-desc">Current Level</div></div>
+      <div class="world-stat"><div class="world-stat-num" id="ws-at">5</div><div class="world-stat-desc">New Recruits At This Level</div></div>
+      <div class="world-stat"><div class="world-stat-num" id="ws-total">6</div><div class="world-stat-desc">Total People In Structure</div></div>
+      <div class="world-stat"><div class="world-stat-num" id="ws-world">0.000%</div><div class="world-stat-desc">Of World Population Consumed</div></div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- COST REALITY -->
+<section id="cost-section">
+  <div class="section-label">Chapter 03 — The Price of "The Dream"</div>
+  <h2>THE PRODUCTS ARE<br><em>NOT THE POINT</em></h2>
+  <p class="lead">MLM products are typically 3–10× overpriced versus store equivalents. You're not paying for the product. You're paying for the right to sell — and to keep your "active distributor" status month after month.</p>
+  <div class="cost-grid">
+    <div class="product-compare">
+      <div class="pc-header mlm">MLM "Business" Products</div>
+      <div class="pc-item"><span>Protein Shake (30 srv)</span><span class="pc-price mlm">$89</span></div>
+      <div class="pc-item"><span>Multi-Vitamin (1 mo)</span><span class="pc-price mlm">$54</span></div>
+      <div class="pc-item"><span>Essential Oil Kit</span><span class="pc-price mlm">$150</span></div>
+      <div class="pc-item"><span>Skincare Starter Set</span><span class="pc-price mlm">$220</span></div>
+      <div class="pc-item"><span>Monthly "Active" Minimum</span><span class="pc-price mlm">$100–300</span></div>
+      <div class="pc-item" style="background:rgba(255,60,60,0.06);"><span style="font-weight:700;">Typical Monthly Cost</span><span class="pc-price mlm" style="font-size:1.8rem;">$300–600</span></div>
+    </div>
+    <div class="product-compare">
+      <div class="pc-header real">Equivalent Retail / Generic</div>
+      <div class="pc-item"><span>Protein Shake (30 srv)</span><span class="pc-price real">$28</span></div>
+      <div class="pc-item"><span>Multi-Vitamin (1 mo)</span><span class="pc-price real">$14</span></div>
+      <div class="pc-item"><span>Essential Oil Kit</span><span class="pc-price real">$32</span></div>
+      <div class="pc-item"><span>Skincare Starter Set</span><span class="pc-price real">$45</span></div>
+      <div class="pc-item"><span>No forced minimums</span><span class="pc-price real">$0</span></div>
+      <div class="pc-item" style="background:rgba(46,204,113,0.06);"><span style="font-weight:700;">Typical Monthly Cost</span><span class="pc-price real" style="font-size:1.8rem;">$90–140</span></div>
+    </div>
+  </div>
+  <div id="invest-canvas-wrap">
+    <div class="section-label" style="margin-bottom:1rem;">What if you invested the overpayment instead?</div>
+    <div class="invest-controls">
+      <div class="slider-wrap">
+        <label>Monthly MLM overspend (vs. retail)</label>
+        <input type="range" id="invest-monthly" min="100" max="600" value="250" step="25">
+        <div class="slider-val" id="invest-monthly-val">$250 / month</div>
+      </div>
+      <div class="slider-wrap">
+        <label>Years invested</label>
+        <input type="range" id="invest-years" min="1" max="30" value="10" step="1">
+        <div class="slider-val" id="invest-years-val">10 years</div>
+      </div>
+    </div>
+    <canvas id="invest-canvas"></canvas>
+    <div class="invest-summary">
+      <div class="is-block"><div class="is-num" style="color:var(--accent)" id="is-spent">$30,000</div><div class="is-label">Spent on overpriced MLM products</div></div>
+      <div class="is-block"><div class="is-num" style="color:var(--green)" id="is-invested">$38,770</div><div class="is-label">Value if invested in S&P index (7% avg)</div></div>
+      <div class="is-block"><div class="is-num" style="color:var(--gold)" id="is-diff">+$8,770</div><div class="is-label">Difference — real compounding wealth</div></div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- INCOME REALITY -->
+<section id="income-section">
+  <div class="inner">
+    <div class="section-label">Chapter 04 — The Income Disclosure Nobody Shows You</div>
+    <h2>THE <em>REAL</em><br>INCOME NUMBERS</h2>
+    <p class="lead">MLMs are legally required to publish income disclosure statements. Almost no recruiter shows them. Here's what they actually say — averaged across major MLMs from their own published data.</p>
+    <div class="income-bars" id="income-bars"></div>
+    <div class="highlight-box" style="margin-top:2rem;"><strong>The math they hide:</strong> After subtracting mandatory product purchases to stay "active," the vast majority of distributors have a <strong>net loss</strong>. The FTC found that in most MLMs, <strong>less than 1% of participants make a profit</strong> after all expenses are counted.</div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- PSYCHOLOGY / CULT SECTION -->
+<section id="psych-section">
+  <div class="inner">
+    <div class="section-label">Chapter 05 — The Psychology Weapons & Cult Mechanics</div>
+    <h2>REAL SCIENCE.<br><em>DEMONIC TWIST.</em></h2>
+    <p class="lead">MLMs don't invent their psychology. They steal real, peer-reviewed human psychology — tools that genuinely help people — and weaponize them to serve the funnel. The result is something that functions like a cult: it isolates, indoctrinates, and punishes doubt.</p>
+
+    <!-- THE SECRET CALLOUT -->
+    <div class="secret-banner">
+      <div class="secret-icon">✨</div>
+      <div>
+        <div class="secret-title">"The Secret" & The Law of Attraction</div>
+        <div class="secret-body">
+          <strong>What the science actually says:</strong> Positive visualization can improve motivation and reduce anxiety when paired with concrete planning. It is a preparation tool. Full stop.<br><br>
+          <strong>What MLMs do with it:</strong> <em>"Your bank account reflects your belief system. Broke? Your mindset is broken. Success is a decision. Buy the training and fix your thinking."</em><br><br>
+          This converts a structural, mathematical failure — which is guaranteed for 99% of participants by the pyramid itself — into a <strong>personal moral failing</strong>. The system is never wrong. You are always the problem. This is the most dangerous lie in the entire machine.
+        </div>
+      </div>
+    </div>
+
+    <div class="psych-grid">
+      <div class="psych-card c-gold">
+        <div class="psych-head">
+          <div class="psych-icon">📈</div>
+          <div class="psych-title">Growth Mindset — Stolen</div>
+          <div class="psych-sub">Carol Dweck's Research → "You Didn't Grind Enough"</div>
+        </div>
+        <div class="psych-body">
+          <div class="real-label">What the science says</div>
+          <div class="psych-real">A growth mindset means believing abilities improve through effort. It's backed by decades of research — and applies to learning skills, not to escaping a rigged mathematical structure.</div>
+          <div class="twist-label">How MLMs twist it</div>
+          <div class="psych-twist">"The only reason you failed is you gave up. Real entrepreneurs don't quit. Losers quit. Winners manifest." Structural failure becomes personal moral failure.</div>
+        </div>
+      </div>
+      <div class="psych-card c-red">
+        <div class="psych-head">
+          <div class="psych-icon">🔒</div>
+          <div class="psych-title">Sunk Cost + Identity Fusion</div>
+          <div class="psych-sub">Loss Aversion → "You Can't Quit Now"</div>
+        </div>
+        <div class="psych-body">
+          <div class="real-label">What the science says</div>
+          <div class="psych-real">Sunk cost fallacy: humans irrationally continue bad investments because of prior spending. Identity fusion: when a belief becomes core to who you are, a threat to it feels like a physical attack.</div>
+          <div class="twist-label">How MLMs twist it</div>
+          <div class="psych-twist">"You've invested $8,000 and two years. Quitters never win. Are you going to let your family down? This IS who you are now." The deeper the hole, the more unthinkable the exit.</div>
+        </div>
+      </div>
+      <div class="psych-card c-purple">
+        <div class="psych-head">
+          <div class="psych-icon">🫂</div>
+          <div class="psych-title">In-Group / Out-Group Dynamics</div>
+          <div class="psych-sub">Tribal Psychology → Cult of Positivity</div>
+        </div>
+        <div class="psych-body">
+          <div class="real-label">What the science says</div>
+          <div class="psych-real">Belonging to a group activates the same brain circuits as food and shelter. Exclusion feels like a physical threat. This is wired in from 200,000 years of tribal survival.</div>
+          <div class="twist-label">How MLMs twist it</div>
+          <div class="psych-twist">"Your old friends are 'crabs in a bucket.' Anyone who questions the business is 'negative energy.' Real support only comes from your team." Isolation from outside reality is the goal.</div>
+        </div>
+      </div>
+      <div class="psych-card c-blue">
+        <div class="psych-head">
+          <div class="psych-icon">🎧</div>
+          <div class="psych-title">Information Overload — By Design</div>
+          <div class="psych-sub">Cognitive Overload → No Space to Think Critically</div>
+        </div>
+        <div class="psych-body">
+          <div class="real-label">What the science says</div>
+          <div class="psych-real">When people are overwhelmed with information, they default to authority and social proof rather than independent analysis. Silence is when critical thinking happens.</div>
+          <div class="twist-label">How MLMs twist it</div>
+          <div class="psych-twist">"Daily calls. Morning podcasts. Weekend conferences. Team Zooms. More courses." The content is endless — and deliberately leaves no silence in which doubt could grow.</div>
+        </div>
+      </div>
+      <div class="psych-card c-green">
+        <div class="psych-head">
+          <div class="psych-icon">💰</div>
+          <div class="psych-title">The Content Revenue Loop</div>
+          <div class="psych-sub">Training, Tapes & Conferences = Hidden Profit Stream</div>
+        </div>
+        <div class="psych-body">
+          <div class="real-label">The business inside the business</div>
+          <div class="psych-real">The upline sells motivational content TO distributors. Tapes, conference tickets, YouTube courses, group coaching. This is often a separate profit stream — independent of product sales.</div>
+          <div class="twist-label">How MLMs twist it</div>
+          <div class="psych-twist">"You NEED this $300 conference. The $49/mo subscription is what's holding you back. You can't expect to win without investing in yourself." The distributor is always the customer.</div>
+        </div>
+      </div>
+      <div class="psych-card c-red">
+        <div class="psych-head">
+          <div class="psych-icon">⚡</div>
+          <div class="psych-title">Urgency & Fear Manufacturing</div>
+          <div class="psych-sub">FOMO + Scarcity → Act Now, Think Later</div>
+        </div>
+        <div class="psych-body">
+          <div class="real-label">What the science says</div>
+          <div class="psych-real">Artificial urgency short-circuits the prefrontal cortex — the rational decision-making center. "Act now" pressure is designed to prevent deliberate thinking.</div>
+          <div class="twist-label">How MLMs twist it</div>
+          <div class="psych-twist">"This ground floor opportunity closes Friday. The people who wait are the people who miss it. Every day you delay costs you $X in lost downline. Decide NOW."</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT FIREHOSE -->
+    <div class="firehose-wrap">
+      <div class="firehose-title">🎧 The Content Firehose</div>
+      <div class="firehose-sub">This is how MLMs monetize doubt. Every moment of silence is a risk — someone might think. So the upline sells an endless stream of "training" that keeps distributors busy, motivated, and spending. The top makes money whether or not you sell a single product.</div>
+      <div class="firehose-grid">
+        <div class="fh-item"><div class="fh-emoji">📼</div><div class="fh-name">Motivational CDs/Tapes</div><div class="fh-cost">$15–30/each</div><div class="fh-note">Now digitized, same model</div></div>
+        <div class="fh-item"><div class="fh-emoji">🎙️</div><div class="fh-name">Podcasts & Calls</div><div class="fh-cost">$20–80/mo</div><div class="fh-note">Daily "training" subscriptions</div></div>
+        <div class="fh-item"><div class="fh-emoji">🎤</div><div class="fh-name">Conferences & Events</div><div class="fh-cost">$200–1,500/yr</div><div class="fh-note">Mandatory for "culture"</div></div>
+        <div class="fh-item"><div class="fh-emoji">📱</div><div class="fh-name">YouTube / Courses</div><div class="fh-cost">$49–299/course</div><div class="fh-note">Repackaged basic sales tips</div></div>
+        <div class="fh-item"><div class="fh-emoji">📚</div><div class="fh-name">Books</div><div class="fh-cost">$15–25/each</div><div class="fh-note">Often upline-authored</div></div>
+        <div class="fh-item"><div class="fh-emoji">💬</div><div class="fh-name">Group Coaching / Zooms</div><div class="fh-cost">$50–200/mo</div><div class="fh-note">Community = compliance</div></div>
+      </div>
+
+      <!-- AI ACCELERATION BLOCK -->
+      <div class="ai-firehose-wrap">
+        <div class="ai-firehose-header">
+          <span class="ai-firehose-badge">2025 → Now</span>
+          <span class="ai-firehose-badge warn">Critical Update</span>
+          <div class="ai-firehose-title">🤖 AI Is About to Make This Infinitely Worse</div>
+        </div>
+        <div class="ai-firehose-body">
+          <p class="ai-firehose-intro">
+            Everything in that firehose grid above required a human to create. Scripts, recording sessions, editing, travel to conferences, live phone calls. That friction was the only natural limit on how fast the pipeline could flood a distributor's life. <strong>That limit is gone.</strong><br><br>
+            AI can now write the motivational script, clone a voice to record it, generate a "personal" video with a synthetic upline face, automate the check-in call, and flood a WhatsApp group with tailored encouragement — all in seconds, all for near-zero cost, with zero human involvement. <em>The upline can now be a ghost.</em>
+          </p>
+
+          <div class="ai-speed-grid">
+            <div class="speed-col">
+              <div class="speed-header human">👤 Human Upline (Yesterday)</div>
+              <div class="speed-item"><span class="speed-task">Write motivational script</span><span class="speed-time slow">4–8 hrs</span></div>
+              <div class="speed-item"><span class="speed-task">Record podcast episode</span><span class="speed-time slow">3–5 hrs</span></div>
+              <div class="speed-item"><span class="speed-task">Edit & publish video</span><span class="speed-time slow">6–12 hrs</span></div>
+              <div class="speed-item"><span class="speed-task">Personal check-in calls</span><span class="speed-time slow">30 min each</span></div>
+              <div class="speed-item"><span class="speed-task">Write 50 "personal" DMs</span><span class="speed-time slow">2–3 hrs</span></div>
+              <div class="speed-item"><span class="speed-task">Create training course</span><span class="speed-time slow">Weeks</span></div>
+              <div class="speed-item"><span class="speed-task">Host live conference</span><span class="speed-time slow">$50K+ event</span></div>
+            </div>
+            <div class="speed-vs">VS</div>
+            <div class="speed-col ai-col">
+              <div class="speed-header ai-h">🤖 AI Upline (Today)</div>
+              <div class="speed-item"><span class="speed-task">Write motivational script</span><span class="speed-time instant">8 seconds</span></div>
+              <div class="speed-item"><span class="speed-task">Clone voice + record</span><span class="speed-time fast">2 minutes</span></div>
+              <div class="speed-item"><span class="speed-task">Generate talking-head video</span><span class="speed-time fast">5 minutes</span></div>
+              <div class="speed-item"><span class="speed-task">AI call with cloned voice</span><span class="speed-time instant">Automated</span></div>
+              <div class="speed-item"><span class="speed-task">Personalized DMs × 500</span><span class="speed-time instant">30 seconds</span></div>
+              <div class="speed-item"><span class="speed-task">Full training course</span><span class="speed-time fast">Hours</span></div>
+              <div class="speed-item"><span class="speed-task">Virtual AI conference</span><span class="speed-time instant">Near-zero cost</span></div>
+            </div>
+          </div>
+
+          <div class="ai-multiplier-bar" id="ai-mult-bar">
+            <div class="ai-mult-title">Content volume: Human upline vs. AI upline (per week)</div>
+            <div class="ai-mult-row"><span class="ai-mult-label">Emails sent</span><div class="ai-mult-track"><div class="ai-mult-human" style="width:8%;">~20</div><div class="ai-mult-ai" id="am1" data-w="100%">10,000+</div></div><span class="ai-mult-x" id="ax1">500×</span></div>
+            <div class="ai-mult-row"><span class="ai-mult-label">Audio messages</span><div class="ai-mult-track"><div class="ai-mult-human" style="width:5%;">~5</div><div class="ai-mult-ai" id="am2" data-w="95%">Unlimited</div></div><span class="ai-mult-x" id="ax2">∞</span></div>
+            <div class="ai-mult-row"><span class="ai-mult-label">Video clips</span><div class="ai-mult-track"><div class="ai-mult-human" style="width:3%;">1–2</div><div class="ai-mult-ai" id="am3" data-w="88%">Hundreds</div></div><span class="ai-mult-x" id="ax3">100×</span></div>
+            <div class="ai-mult-row"><span class="ai-mult-label">Personal DMs</span><div class="ai-mult-track"><div class="ai-mult-human" style="width:6%;">~30</div><div class="ai-mult-ai" id="am4" data-w="92%">Thousands</div></div><span class="ai-mult-x" id="ax4">1000×</span></div>
+          </div>
+
+          <div class="ai-future-cards">
+            <div class="afc now">
+              <div class="afc-status">● Happening Now</div>
+              <div class="afc-title">AI Scripts & Copy</div>
+              <div class="afc-body">Uplines use ChatGPT and Claude to write all their motivational content, scripts, DMs, and social posts. They no longer write a word themselves — they just review and post.</div>
+            </div>
+            <div class="afc soon">
+              <div class="afc-status">◐ Months Away</div>
+              <div class="afc-title">Synthetic Uplines</div>
+              <div class="afc-body">AI-generated video avatars and voice-cloned "coaches" that look and sound like real people. Distributors will have check-in calls with an AI that mimics their mentor. Indistinguishable to most.</div>
+            </div>
+            <div class="afc near">
+              <div class="afc-status">◯ Near Future</div>
+              <div class="afc-title">Fully Automated MLM</div>
+              <div class="afc-body">An MLM where no real human exists in the upline at all. AI recruits, AI trains, AI motivates, AI blames. The entire psychological manipulation pipeline runs without a single real person above you.</div>
+            </div>
+          </div>
+
+          <div class="ai-warning-box">
+            <div class="ai-warn-icon">⚠️</div>
+            <div>
+              <div class="ai-warn-title">The Upline Was Already Mostly Fake. Now It Will Be Completely.</div>
+              <div class="ai-warn-body">
+                The "community" and "mentorship" that MLMs sell as their core value proposition was always manufactured — scripted calls, mass-produced motivation, recycled content dressed up as personal attention. <strong>AI doesn't change the scam. It just removes the last human cost from running it.</strong><br><br>
+                What this means: the economic incentive to build a fully AI-run MLM already exists. The technology already exists. Someone is building it right now. When it launches, there will be no real person to hold accountable, no "upline" to confront, no human being at the other end of the motivational call telling you that you just need to believe harder. <strong>It will be a machine designed to extract money from people using psychological techniques refined over 50 years of MLM operation — running 24 hours a day, at near-zero cost, at infinite scale.</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLAME LOOP -->
+    <div class="blame-loop-wrap">
+      <div class="blame-loop-title">THE INFINITE BLAME LOOP</div>
+      <div class="blame-loop-sub">This is the engine that keeps people trapped. It's mathematically guaranteed to fail — but psychologically engineered to make you believe failure is your fault.</div>
+      <canvas id="blame-canvas"></canvas>
+      <div class="blame-loop-note">
+        <strong>Notice what's missing from this loop:</strong> any acknowledgment that the pyramid structure mathematically prevents 99% of participants from profiting — regardless of effort, belief, or grind. The system is designed to need your failure, and then to sell you the cure for it.
+      </div>
+    </div>
+
+    <!-- QUICKSAND FUNNEL -->
+    <div id="funnel-wrap">
+      <div class="section-label" style="margin-bottom:0.5rem;">The Quicksand Funnel — How You Get Stuck</div>
+      <canvas id="funnel-canvas"></canvas>
+      <div style="font-size:0.65rem;color:var(--text-dim);margin-top:0.8rem;line-height:1.8;">
+        ▲ Hover each stage to see what's really happening. The funnel doesn't filter for success — it filters for <em>compliance</em>.
+      </div>
+    </div>
+
+    <!-- DEBT METER -->
+    <div class="quicksand-wrap">
+      <div class="qs-title">THE QUICKSAND DEBT TRACKER</div>
+      <p class="lead" style="margin-bottom:1.5rem;">Use sliders to build a realistic picture of hidden costs most distributors accumulate in their first year. These are expenses that exist before a single dollar of profit.</p>
+      <div class="qs-grid" id="qs-grid"></div>
+      <div class="highlight-box gold-box" style="margin-top:1.5rem;">
+        <strong>Your estimated Year 1 hidden costs: </strong><span id="qs-total" style="color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:1.4rem;">$0</span>
+        <span style="font-size:0.7rem;color:var(--text-dim);"> — before a single dollar of profit. Then the upline says: "You just need to believe more."</span>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- QUIZ -->
+<section id="quiz-section">
+  <div class="inner">
+    <div class="section-label">Chapter 06 — Name That MLM</div>
+    <h2>GUESS THE <em>REAL</em><br>INCOME STATS</h2>
+    <p class="lead">These are real numbers from actual income disclosure statements — documents MLMs are legally required to publish and almost never show at recruitment. See if you can guess which company, and how bad the numbers really are.</p>
+    <div class="quiz-container">
+      <div class="quiz-header">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;">Round <span id="q-num">1</span> of <span id="q-total">7</span></div>
+        <div class="quiz-progress-track"><div class="quiz-progress-fill" id="q-progress" style="width:14%;"></div></div>
+      </div>
+      <div class="quiz-body" id="quiz-body"></div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<!-- SOCIAL COST -->
+<section id="social-section">
+  <div class="inner">
+    <div class="section-label">Chapter 07 — The Real Price: Your Relationships</div>
+    <h2>HOW MANY<br><em>PEOPLE</em> DID IT COST?</h2>
+    <p class="lead">Money can be rebuilt. Trust is harder. The average MLM distributor pitches over 50 people from their personal network before leaving. Adjust the sliders to model your own social cost.</p>
+    <div class="social-grid">
+      <div class="social-inputs">
+        <div class="slider-wrap">
+          <label>Close friends & family in your network</label>
+          <input type="range" id="s-close" min="5" max="60" value="20" step="1">
+          <div class="slider-val" id="s-close-val">20 people</div>
+        </div>
+        <div class="slider-wrap">
+          <label>Acquaintances / coworkers pitched</label>
+          <input type="range" id="s-acquaint" min="0" max="100" value="30" step="5">
+          <div class="slider-val" id="s-acquaint-val">30 people</div>
+        </div>
+        <div class="slider-wrap">
+          <label>Months active in the MLM</label>
+          <input type="range" id="s-months" min="1" max="60" value="18" step="1">
+          <div class="slider-val" id="s-months-val">18 months</div>
+        </div>
+        <div class="slider-wrap">
+          <label>Avg monthly pitch messages sent</label>
+          <input type="range" id="s-msgs" min="5" max="100" value="30" step="5">
+          <div class="slider-val" id="s-msgs-val">30 messages</div>
+        </div>
+        <div class="social-results" id="social-results"></div>
+      </div>
+      <div>
+        <div class="social-canvas-wrap">
+          <div style="font-size:0.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:1rem;">Estimated relationship impact</div>
+          <canvas id="social-canvas"></canvas>
+        </div>
+        <div class="relationship-viz">
+          <div class="rel-title">Your Network — Who Got Pitched?</div>
+          <div class="rel-grid" id="rel-grid"></div>
+          <div class="rel-legend">
+            <div class="rel-leg-item"><div class="rel-leg-dot" style="background:#555570;"></div>Not pitched</div>
+            <div class="rel-leg-item"><div class="rel-leg-dot" style="background:rgba(245,200,66,0.4);border:2px solid var(--accent);"></div>Pitched (strained)</div>
+            <div class="rel-leg-item"><div class="rel-leg-dot" style="background:#1a1a28;border:2px solid var(--accent);"></div>Pitched & lost</div>
+            <div class="rel-leg-item"><div class="rel-leg-dot" style="background:#1a2a1a;border:2px solid var(--green);"></div>Still close</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="divider"></div>
+
+<div class="divider"></div>
+
+<!-- RESCUE TOOL -->
+<section id="rescue-section">
+  <div class="inner">
+    <div class="section-label">Chapter 08 — The Way Out</div>
+    <h2>YOUR PERSONAL<br><em>RESCUE REPORT</em></h2>
+    <p class="lead">This tool isn't about shame. It's about seeing clearly — often for the first time — the full cost of what happened. Not just money. Time. Relationships. Dreams deferred. And then: what comes next.</p>
+
+    <div class="rescue-intro">
+      <div class="rescue-icon">🤝</div>
+      <div>
+        <div class="rescue-intro-title">A Hand Out of the Quicksand</div>
+        <div class="rescue-intro-body">
+          The sunk cost fallacy is real and powerful. It says: <em>"I've invested too much to stop now."</em> But the math of that logic is backwards. <strong>Every day you stay costs more than every day you've already spent.</strong> This tool helps you see the full picture — not to make you feel bad, but to make the real cost undeniable, and then point toward what's genuinely possible on the other side.
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP PROGRESS -->
+    <div class="rescue-steps" id="rescue-steps">
+      <div class="rstep"><div class="rstep-dot active" id="rdot0">1</div><div class="rstep-label active" id="rlbl0">The MLM</div></div>
+      <div class="rstep-line" id="rline0"></div>
+      <div class="rstep"><div class="rstep-dot" id="rdot1">2</div><div class="rstep-label" id="rlbl1">Time & Level</div></div>
+      <div class="rstep-line" id="rline1"></div>
+      <div class="rstep"><div class="rstep-dot" id="rdot2">3</div><div class="rstep-label" id="rlbl2">Products & Costs</div></div>
+      <div class="rstep-line" id="rline2"></div>
+      <div class="rstep"><div class="rstep-dot" id="rdot3">4</div><div class="rstep-label" id="rlbl3">Your Life</div></div>
+      <div class="rstep-line" id="rline3"></div>
+      <div class="rstep"><div class="rstep-dot" id="rdot4">5</div><div class="rstep-label" id="rlbl4">Your Report</div></div>
+    </div>
+
+    <!-- STEP 0: THE MLM -->
+    <div class="rescue-panel active" id="rpanel0">
+      <div class="r-card">
+        <div class="r-card-title">Which MLM were you (or your loved one) involved with?</div>
+        <div class="r-card-sub">Choose from the list or type it in. We won't judge the company — we'll just use its real income data.</div>
+        <div class="r-field">
+          <label class="r-label">Select or type the MLM name</label>
+          <select class="r-select" id="r-mlm-select" onchange="mlmSelectChange()">
+            <option value="">— Choose a company —</option>
+            <option value="Herbalife">Herbalife</option>
+            <option value="Amway">Amway</option>
+            <option value="LuLaRoe">LuLaRoe</option>
+            <option value="Monat">Monat</option>
+            <option value="Nu Skin">Nu Skin</option>
+            <option value="Primerica">Primerica</option>
+            <option value="Arbonne">Arbonne</option>
+            <option value="doTERRA">doTERRA</option>
+            <option value="Young Living">Young Living</option>
+            <option value="Mary Kay">Mary Kay</option>
+            <option value="Avon">Avon</option>
+            <option value="Rodan + Fields">Rodan + Fields</option>
+            <option value="Tupperware">Tupperware</option>
+            <option value="Pampered Chef">Pampered Chef</option>
+            <option value="Isagenix">Isagenix</option>
+            <option value="Beachbody / BODi">Beachbody / BODi</option>
+            <option value="4Life">4Life</option>
+            <option value="ACN">ACN (Telecom)</option>
+            <option value="other">Other / Type below</option>
+          </select>
+        </div>
+        <div class="r-field" id="r-mlm-other-wrap" style="display:none;">
+          <label class="r-label">Type the company name</label>
+          <input type="text" class="r-input" id="r-mlm-other" placeholder="e.g. Thirty-One Gifts...">
+        </div>
+        <div class="r-field">
+          <label class="r-label">Who was involved?</label>
+          <select class="r-select" id="r-who">
+            <option value="me">Me — I was the distributor</option>
+            <option value="partner">My partner / spouse</option>
+            <option value="family">A family member</option>
+            <option value="friend">A close friend</option>
+          </select>
+        </div>
+      </div>
+      <div class="rescue-nav">
+        <div></div>
+        <button class="r-btn r-btn-next" onclick="rescueNext(0)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 1: TIME & LEVEL -->
+    <div class="rescue-panel" id="rpanel1">
+      <div class="r-card">
+        <div class="r-card-title">Time Active & Rank Reached</div>
+        <div class="r-card-sub">Be honest — there's no wrong answer. The goal is accuracy, not judgment.</div>
+        <div class="r-row">
+          <div class="r-field">
+            <label class="r-label">Months active</label>
+            <input type="number" class="r-input" id="r-months" min="1" max="240" value="18" placeholder="e.g. 18">
+          </div>
+          <div class="r-field">
+            <label class="r-label">Approx. hours/week spent</label>
+            <input type="number" class="r-input" id="r-hrs-week" min="1" max="80" value="15" placeholder="e.g. 15">
+          </div>
+        </div>
+        <div class="r-field">
+          <label class="r-label">Highest rank reached (approximate)</label>
+          <div class="level-picker" id="level-picker">
+            <div class="lvl-btn selected" data-level="0" onclick="pickLevel(this)"><span class="lvl-name">Starter</span>Just joined / no rank</div>
+            <div class="lvl-btn" data-level="1" onclick="pickLevel(this)"><span class="lvl-name">Associate</span>Basic active seller</div>
+            <div class="lvl-btn" data-level="2" onclick="pickLevel(this)"><span class="lvl-name">Silver</span>First recruits below</div>
+            <div class="lvl-btn" data-level="3" onclick="pickLevel(this)"><span class="lvl-name">Gold</span>Small team built</div>
+            <div class="lvl-btn" data-level="4" onclick="pickLevel(this)"><span class="lvl-name">Platinum</span>Significant downline</div>
+            <div class="lvl-btn" data-level="5" onclick="pickLevel(this)"><span class="lvl-name">Diamond+</span>Top 1–2%</div>
+          </div>
+        </div>
+      </div>
+      <div class="rescue-nav">
+        <button class="r-btn r-btn-back" onclick="rescueBack(1)">← Back</button>
+        <button class="r-btn r-btn-next" onclick="rescueNext(1)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: PRODUCTS & COSTS -->
+    <div class="rescue-panel" id="rpanel2">
+      <div class="r-card">
+        <div class="r-card-title">Products & Monthly Costs</div>
+        <div class="r-card-sub">Add the products or services you were required to purchase each month. Include starter kits, subscriptions, training, events. If you're not sure of exact prices, your best estimate is fine — we'll compare each to retail alternatives.</div>
+
+        <div style="display:grid;grid-template-columns:1fr 80px 80px 32px;gap:0.5rem;margin-bottom:0.5rem;">
+          <div style="font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Product / Service</div>
+          <div style="font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">$/Month</div>
+          <div style="font-size:0.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Retail Est.</div>
+          <div></div>
+        </div>
+        <div class="product-list" id="product-list"></div>
+        <button class="add-product-btn" onclick="addProduct()">+ Add Product or Cost</button>
+
+        <div class="r-field" style="margin-top:1.5rem;">
+          <label class="r-label">One-time buy-in / starter kit cost ($)</label>
+          <input type="number" class="r-input" id="r-buyin" min="0" max="10000" value="500" placeholder="e.g. 500">
+        </div>
+        <div class="r-field">
+          <label class="r-label">Annual conferences / events attended ($)</label>
+          <input type="number" class="r-input" id="r-events" min="0" max="5000" value="400" placeholder="e.g. 400">
+        </div>
+        <div class="r-field">
+          <label class="r-label">Monthly training / subscriptions / tapes ($)</label>
+          <input type="number" class="r-input" id="r-training" min="0" max="500" value="49" placeholder="e.g. 49">
+        </div>
+      </div>
+      <div class="rescue-nav">
+        <button class="r-btn r-btn-back" onclick="rescueBack(2)">← Back</button>
+        <button class="r-btn r-btn-next" onclick="rescueNext(2)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: YOUR LIFE -->
+    <div class="rescue-panel" id="rpanel3">
+      <div class="r-card">
+        <div class="r-card-title">Beyond the Money — Your Life</div>
+        <div class="r-card-sub">This is the part most calculators skip. These questions help us estimate the human cost — the parts that don't show up on a bank statement.</div>
+
+        <div class="r-field">
+          <label class="r-label">Your name (first name only, or a nickname)</label>
+          <input type="text" class="r-input" id="r-name" placeholder="e.g. Sarah, or just 'Friend'...">
+        </div>
+
+        <div class="r-row">
+          <div class="r-field">
+            <label class="r-label">Close friends / family pitched</label>
+            <input type="number" class="r-input" id="r-close-pitched" min="0" max="200" value="12" placeholder="e.g. 12">
+          </div>
+          <div class="r-field">
+            <label class="r-label">Relationships you feel were damaged</label>
+            <input type="number" class="r-input" id="r-damaged" min="0" max="100" value="4" placeholder="e.g. 4">
+          </div>
+        </div>
+
+        <div class="r-field">
+          <label class="r-label">Did you have a dream, project, or skill you put on hold?</label>
+          <input type="text" class="r-input" id="r-dream" placeholder="e.g. starting a bakery, learning guitar, going back to school...">
+        </div>
+
+        <div class="r-field">
+          <label class="r-label">What matters most to you that you lost time with?</label>
+          <select class="r-select" id="r-lost">
+            <option value="kids">Time with my kids</option>
+            <option value="partner">Time with my partner</option>
+            <option value="family">Family time generally</option>
+            <option value="friends">My friendships</option>
+            <option value="self">My own hobbies and growth</option>
+            <option value="health">My health and rest</option>
+            <option value="career">My actual career</option>
+          </select>
+        </div>
+
+        <div class="r-field">
+          <label class="r-label">How are you feeling right now? (optional — helps us tone your report)</label>
+          <select class="r-select" id="r-feeling">
+            <option value="angry">Angry — I feel deceived</option>
+            <option value="embarrassed">Embarrassed — I can't believe I fell for it</option>
+            <option value="sad">Sad — I lost more than money</option>
+            <option value="stuck">Still stuck — I haven't left yet</option>
+            <option value="helping">Helping someone else — this isn't about me</option>
+            <option value="curious">Mostly curious — doing research</option>
+          </select>
+        </div>
+      </div>
+      <div class="rescue-nav">
+        <button class="r-btn r-btn-back" onclick="rescueBack(3)">← Back</button>
+        <button class="r-btn r-btn-generate" onclick="generateReport()">Generate My Report →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: RESULTS -->
+    <div class="rescue-panel" id="rpanel4"></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CTA -->
+<section id="cta-section">
+  <div class="cta-box">
+    <div class="section-label" style="text-align:center;">The Bottom Line</div>
+    <div class="verdict">THE PRODUCT<br>IS <span>YOU</span></div>
+    <p class="cta-text">The product was never the shake, the oil, or the cream. The product is the distributor — their social network, their trust relationships, their labor, their belief. MLMs extract all of that value upward. The math guarantees it. The psychology sustains it. And when it fails, the system blames you.</p>
+    <div style="margin-top:2rem;padding:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:4px;text-align:left;">
+      <div style="font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.8rem;">Instead of $300/month in MLM fees — what passive income actually looks like:</div>
+      <div style="font-size:0.78rem;line-height:2.3;color:var(--text);">
+        💰 <strong>I-Bonds / Treasury bonds</strong> — government-guaranteed returns, zero risk<br>
+        📈 <strong>S&P 500 index fund</strong> — avg ~10%/yr long-term, no "team" required<br>
+        🏦 <strong>High-yield savings account</strong> — 4–5% with full liquidity<br>
+        📊 <strong>Money market fund</strong> — stable, above-inflation, no buy-in, no pitch
+      </div>
+    </div>
+    <div class="highlight-box" style="margin-top:1.5rem;text-align:left;">
+      <strong>Real passive income</strong> does exist — in dividends, in index funds, in real estate. The difference: it doesn't require you to recruit your friends, buy products you don't need, or attend a $400 conference to "fix your mindset."
+    </div>
+  </div>
+</section>
+
+<footer>
+  MLM DECODED — An educational interactive. Data sourced from FTC reports, DSA income disclosures, and peer-reviewed studies on multi-level marketing. | Built to protect people, not profits.
+</footer>
+
+<script>
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function formatBig(n){
+  if(n>=1e12)return(n/1e12).toFixed(1)+'T';
+  if(n>=1e9)return(n/1e9).toFixed(1)+'B';
+  if(n>=1e6)return(n/1e6).toFixed(1)+'M';
+  if(n>=1e3)return(n/1e3).toFixed(1)+'K';
+  return Math.round(n).toString();
+}
+
+// ═══════════════════════════════════════════
+// HERO — Three.js particle network
+// ═══════════════════════════════════════════
+(function(){
+  const canvas=document.getElementById('hero-canvas');
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(60,1,0.1,100);
+  camera.position.z=30;
+  const N=80;
+  const positions=[],velocities=[],nodes=[];
+  const nodeGeo=new THREE.SphereGeometry(0.18,8,8);
+  const nodeMat=new THREE.MeshBasicMaterial({color:0xff3c3c});
+  const topMat=new THREE.MeshBasicMaterial({color:0xf5c842});
+  for(let i=0;i<N;i++){
+    const mesh=new THREE.Mesh(nodeGeo,i<3?topMat:nodeMat);
+    const x=(Math.random()-0.5)*50,y=(Math.random()-0.5)*30,z=(Math.random()-0.5)*10;
+    mesh.position.set(x,y,z);
+    positions.push(mesh.position);
+    velocities.push(new THREE.Vector3((Math.random()-0.5)*0.03,(Math.random()-0.5)*0.02,0));
+    scene.add(mesh);nodes.push(mesh);
+  }
+  const maxLines=200,linePositions=new Float32Array(maxLines*6);
+  const lineGeo=new THREE.BufferGeometry();
+  lineGeo.setAttribute('position',new THREE.BufferAttribute(linePositions,3));
+  scene.add(new THREE.LineSegments(lineGeo,new THREE.LineBasicMaterial({color:0x2a2a40,transparent:true,opacity:0.6})));
+  function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+  window.addEventListener('resize',resize);resize();
+  (function animate(){
+    requestAnimationFrame(animate);
+    nodes.forEach((n,i)=>{n.position.add(velocities[i]);if(Math.abs(n.position.x)>25)velocities[i].x*=-1;if(Math.abs(n.position.y)>15)velocities[i].y*=-1;});
+    let li=0;
+    for(let a=0;a<N&&li<maxLines;a++)for(let b=a+1;b<N&&li<maxLines;b++){const d=positions[a].distanceTo(positions[b]);if(d<12){linePositions[li*6]=positions[a].x;linePositions[li*6+1]=positions[a].y;linePositions[li*6+2]=positions[a].z;linePositions[li*6+3]=positions[b].x;linePositions[li*6+4]=positions[b].y;linePositions[li*6+5]=positions[b].z;li++;}}
+    lineGeo.setDrawRange(0,li*2);lineGeo.attributes.position.needsUpdate=true;renderer.render(scene,camera);
+  })();
+})();
+
+// ═══════════════════════════════════════════
+// PYRAMID
+// ═══════════════════════════════════════════
+const pyCanvas=document.getElementById('pyramid-canvas');
+const pyCtx=pyCanvas.getContext('2d');
+const recruitSlider=document.getElementById('recruit-slider');
+const levelSlider=document.getElementById('level-slider');
+function drawPyramid(){
+  const factor=parseInt(recruitSlider.value),levels=parseInt(levelSlider.value);
+  const rows=[];for(let l=0;l<=levels;l++)rows.push(Math.pow(factor,l));
+  const maxPeople=rows[rows.length-1];
+  const W=pyCanvas.width=pyCanvas.offsetWidth,H=pyCanvas.height=pyCanvas.offsetHeight;
+  pyCtx.clearRect(0,0,W,H);
+  const rowH=(H-40)/rows.length;
+  const colors=['#f5c842','#ff9900','#ff6600','#ff3c3c','#cc2222','#991111','#660000','#440000','#2a0000','#1a0000','#110000','#090000','#030000'];
+  rows.forEach((count,i)=>{
+    const frac=count/maxPeople,barW=Math.max(frac*(W-40),8),x=(W-barW)/2,y=20+i*rowH;
+    pyCtx.fillStyle=colors[Math.min(i,colors.length-1)];
+    pyCtx.beginPath();pyCtx.roundRect(x,y,barW,rowH-3,2);pyCtx.fill();
+    pyCtx.fillStyle='#e8e8f0';pyCtx.font=`${Math.min(11,rowH*0.45)}px "Space Mono",monospace`;pyCtx.textAlign='center';pyCtx.textBaseline='middle';
+    if(barW>50)pyCtx.fillText(i===0?'L0: YOU (Founder)':'L'+i+': '+formatBig(count),W/2,y+rowH/2-1.5);
+  });
+  const atLevel=rows[levels];let below=0;for(let l=levels+1;l<=levels+3;l++)below+=Math.pow(factor,l);
+  let total=0;for(let l=0;l<=levels;l++)total+=rows[l];
+  const abovePct=((total-atLevel)/total*100).toFixed(1);
+  document.getElementById('recruit-val').textContent=factor+' recruits';
+  document.getElementById('level-val').textContent='Level '+levels;
+  document.getElementById('level-people-label').textContent=formatBig(atLevel)+' people';
+  document.getElementById('stat-at-level').textContent=formatBig(atLevel);
+  document.getElementById('stat-below').textContent=formatBig(below)+' (next 3 lvls)';
+  document.getElementById('stat-total').textContent=formatBig(total);
+  document.getElementById('stat-above-pct').textContent=abovePct+'%';
+}
+recruitSlider.oninput=drawPyramid;levelSlider.oninput=drawPyramid;
+window.addEventListener('resize',()=>setTimeout(drawPyramid,50));drawPyramid();
+
+// ═══════════════════════════════════════════
+// WORLD SATURATION
+// ═══════════════════════════════════════════
+const worldCanvas=document.getElementById('world-canvas');
+const worldCtx=worldCanvas.getContext('2d');
+const WORLD_POP=8_000_000_000,RECRUIT_FACTOR=5,MAX_LEVELS=20;
+const wData=(()=>{const d=[];let t=1;for(let l=1;l<=MAX_LEVELS;l++){const a=Math.pow(RECRUIT_FACTOR,l);t+=a;d.push({level:l,atLevel:a,total:t});}return d;})();
+let worldAnimFrame=null,currentLevel=0,worldAnimating=false;
+const satLv=(()=>{for(let i=0;i<wData.length;i++)if(wData[i].total>=WORLD_POP)return i+1;return MAX_LEVELS;})();
+document.getElementById('saturation-level-display').textContent=satLv;
+function drawWorld(upToLevel){
+  const W=worldCanvas.width=worldCanvas.offsetWidth,H=380;worldCanvas.height=H;worldCtx.clearRect(0,0,W,H);
+  const pad={l:60,r:20,t:30,b:50},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  worldCtx.strokeStyle='#2a2a40';worldCtx.lineWidth=1;
+  [1e3,1e6,1e9].forEach(v=>{const y=pad.t+cH-(Math.log10(v)/Math.log10(WORLD_POP))*cH;worldCtx.beginPath();worldCtx.moveTo(pad.l,y);worldCtx.lineTo(pad.l+cW,y);worldCtx.stroke();worldCtx.fillStyle='#555570';worldCtx.font='9px "Space Mono"';worldCtx.textAlign='right';worldCtx.fillText(formatBig(v),pad.l-6,y+4);});
+  const wy=pad.t;worldCtx.strokeStyle='#ff3c3c55';worldCtx.setLineDash([6,4]);worldCtx.lineWidth=1.5;worldCtx.beginPath();worldCtx.moveTo(pad.l,wy);worldCtx.lineTo(pad.l+cW,wy);worldCtx.stroke();worldCtx.setLineDash([]);
+  worldCtx.fillStyle='#ff3c3c';worldCtx.font='bold 10px "Space Mono"';worldCtx.textAlign='left';worldCtx.fillText('🌍 World Population (8B)',pad.l+4,wy-6);
+  const drawTo=Math.min(upToLevel,MAX_LEVELS),barW=cW/MAX_LEVELS-4;
+  for(let i=0;i<drawTo;i++){
+    const d=wData[i],logFrac=Math.log10(Math.max(d.total,1))/Math.log10(WORLD_POP),barH=logFrac*cH,x=pad.l+i*(cW/MAX_LEVELS)+2,y=pad.t+cH-barH;
+    worldCtx.fillStyle=d.total>=WORLD_POP?'#ff3c3c':`hsl(${200-i*12},80%,55%)`;worldCtx.fillRect(x,y,barW,barH);
+    worldCtx.fillStyle='#888899';worldCtx.font='8px "Space Mono"';worldCtx.textAlign='center';worldCtx.fillText(d.level,x+barW/2,pad.t+cH+14);
+  }
+  worldCtx.fillStyle='#888899';worldCtx.font='9px "Space Mono"';worldCtx.textAlign='center';worldCtx.fillText('Recruitment Level',pad.l+cW/2,H-8);
+  if(upToLevel>0){const d=wData[Math.min(upToLevel,MAX_LEVELS)-1];document.getElementById('ws-level').textContent=d.level;document.getElementById('ws-at').textContent=formatBig(d.atLevel);document.getElementById('ws-total').textContent=formatBig(d.total);const pct=Math.min(d.total/WORLD_POP*100,100);document.getElementById('ws-world').textContent=pct>=100?'100%+ 💀':pct.toFixed(pct<0.01?4:2)+'%';}
+}
+function animateWorld(){if(!worldAnimating)return;if(currentLevel>=MAX_LEVELS){worldAnimating=false;const b=document.getElementById('btn-animate');b.textContent='▶ Replay';b.classList.remove('active');return;}currentLevel++;drawWorld(currentLevel);worldAnimFrame=setTimeout(animateWorld,currentLevel<satLv?260:100);}
+function toggleWorldAnim(){if(currentLevel>=MAX_LEVELS)currentLevel=0;worldAnimating=!worldAnimating;const b=document.getElementById('btn-animate');if(worldAnimating){b.textContent='⏸ Pause';b.classList.add('active');animateWorld();}else{b.textContent='▶ Resume';clearTimeout(worldAnimFrame);}}
+function resetWorld(){clearTimeout(worldAnimFrame);currentLevel=0;worldAnimating=false;const b=document.getElementById('btn-animate');b.textContent='▶ Animate Growth';b.classList.add('active');drawWorld(0);}
+window.addEventListener('resize',()=>drawWorld(currentLevel));drawWorld(0);
+
+// ═══════════════════════════════════════════
+// INVESTMENT CALC
+// ═══════════════════════════════════════════
+const investCanvas=document.getElementById('invest-canvas');
+const investCtx=investCanvas.getContext('2d');
+const iMonthly=document.getElementById('invest-monthly'),iYears=document.getElementById('invest-years');
+function calcInvestment(monthly,years,rate=0.07){const months=years*12,mr=rate/12,fv=monthly*((Math.pow(1+mr,months)-1)/mr),spent=monthly*months;return{fv:Math.round(fv),spent,diff:Math.round(fv-spent)};}
+function drawInvestment(){
+  const monthly=parseInt(iMonthly.value),years=parseInt(iYears.value);
+  document.getElementById('invest-monthly-val').textContent='$'+monthly+' / month';
+  document.getElementById('invest-years-val').textContent=years+' year'+(years>1?'s':'');
+  const W=investCanvas.width=investCanvas.offsetWidth,H=260;investCanvas.height=H;investCtx.clearRect(0,0,W,H);
+  const pad={l:60,r:20,t:20,b:40},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const spentData=[],investData=[];const maxY_ref=calcInvestment(monthly,years).fv;
+  for(let y=0;y<=years;y++){spentData.push(monthly*12*y);investData.push(calcInvestment(monthly,y).fv);}
+  const maxVal=Math.max(maxY_ref,monthly*12*years);
+  investCtx.strokeStyle='#2a2a40';investCtx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=pad.t+(i/4)*cH;investCtx.beginPath();investCtx.moveTo(pad.l,y);investCtx.lineTo(pad.l+cW,y);investCtx.stroke();investCtx.fillStyle='#555570';investCtx.font='8px "Space Mono"';investCtx.textAlign='right';investCtx.fillText('$'+formatBig(maxVal*(1-i/4)),pad.l-4,y+4);}
+  function drawLine(data,color,fill){investCtx.beginPath();data.forEach((v,i)=>{const x=pad.l+(i/years)*cW,y=pad.t+cH-(v/maxVal)*cH;i===0?investCtx.moveTo(x,y):investCtx.lineTo(x,y);});if(fill){investCtx.lineTo(pad.l+cW,pad.t+cH);investCtx.lineTo(pad.l,pad.t+cH);investCtx.closePath();investCtx.fillStyle=fill;investCtx.fill();}investCtx.strokeStyle=color;investCtx.lineWidth=2.5;investCtx.stroke();}
+  drawLine(spentData,'#ff3c3c','rgba(255,60,60,0.08)');drawLine(investData,'#2ecc71','rgba(46,204,113,0.12)');
+  investCtx.fillStyle='#555570';investCtx.font='8px "Space Mono"';investCtx.textAlign='center';[0,Math.floor(years/2),years].forEach(y=>investCtx.fillText('Yr '+y,pad.l+(y/years)*cW,H-10));
+  [[0,'#ff3c3c','Spent on MLM'],[1,'#2ecc71','If Invested (7%)']].forEach(([i,col,lbl])=>{const lx=pad.l+i*140;investCtx.fillStyle=col;investCtx.fillRect(lx,8,14,4);investCtx.fillStyle='#888899';investCtx.font='8px "Space Mono"';investCtx.textAlign='left';investCtx.fillText(lbl,lx+18,14);});
+  const res=calcInvestment(monthly,years);
+  document.getElementById('is-spent').textContent='$'+formatBig(res.spent);
+  document.getElementById('is-invested').textContent='$'+formatBig(res.fv);
+  document.getElementById('is-diff').textContent='+$'+formatBig(res.diff);
+}
+iMonthly.oninput=drawInvestment;iYears.oninput=drawInvestment;
+window.addEventListener('resize',()=>setTimeout(drawInvestment,50));drawInvestment();
+
+// ═══════════════════════════════════════════
+// INCOME BARS
+// ═══════════════════════════════════════════
+const incomeData=[
+  {level:'Founders / Top',pct:0.05,avg:'$150,000+',color:'#f5c842'},
+  {level:'Diamond+',pct:0.1,avg:'$30,000–80K',color:'#f5a623'},
+  {level:'Platinum',pct:0.5,avg:'$8,000–25K',color:'#e67e22'},
+  {level:'Gold',pct:1.5,avg:'$2,000–6K',color:'#e74c3c'},
+  {level:'Silver',pct:5,avg:'$500–1,500',color:'#c0392b'},
+  {level:'Active Distribtr',pct:15,avg:'$50–400',color:'#922b21'},
+  {level:'All Others (72%+)',pct:78,avg:'$0 (net loss)',color:'#4a0000'},
+];
+const barsEl=document.getElementById('income-bars');
+incomeData.forEach(d=>{const row=document.createElement('div');row.className='income-row';row.innerHTML='<div class="income-level">'+d.level+'</div><div class="income-bar-track"><div class="income-bar-fill" data-width="'+d.pct+'" style="width:0%;background:'+d.color+';">'+d.avg+'</div></div><div class="income-pct">'+d.pct+'%</div>';barsEl.appendChild(row);});
+new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('.income-bar-fill').forEach((el,i)=>setTimeout(()=>el.style.width=Math.max(parseFloat(el.dataset.width),2)+'%',i*120));}});},{threshold:0.2}).observe(barsEl);
+
+// ═══════════════════════════════════════════
+// BLAME LOOP CANVAS
+// ═══════════════════════════════════════════
+(function(){
+  const bc=document.getElementById('blame-canvas');
+  const ctx=bc.getContext('2d');
+  const steps=[
+    {label:'YOU JOIN',detail:'Excited. Dream is real.',color:'#f5c842',angle:0},
+    {label:'BUY IN',detail:'Starter kit + inventory.',color:'#f5a623',angle:Math.PI*2/6},
+    {label:'BUY CONTENT',detail:'Tapes, calls, conferences.',color:'#e67e22',angle:Math.PI*4/6},
+    {label:'PITCH EVERYONE',detail:'Friends, family, strangers.',color:'#e74c3c',angle:Math.PI*6/6},
+    {label:'SALES FAIL',detail:'Market saturated. Math kicks in.',color:'#cc2222',angle:Math.PI*8/6},
+    {label:'"YOUR FAULT"',detail:'Not enough grind. Bad mindset.',color:'#ff3c3c',angle:Math.PI*10/6},
+  ];
+  let t=0,hovIdx=-1;
+  function resize(){bc.width=bc.offsetWidth;bc.height=340;}
+  function draw(){
+    const W=bc.width,H=bc.height;ctx.clearRect(0,0,W,H);
+    const cx=W/2,cy=H/2,R=Math.min(W,H)*0.32;
+    t+=0.008;
+
+    // Draw arrows between steps
+    steps.forEach((s,i)=>{
+      const next=steps[(i+1)%steps.length];
+      const a1=s.angle+t,a2=next.angle+t;
+      const x1=cx+Math.cos(a1)*R,y1=cy+Math.sin(a1)*R;
+      const x2=cx+Math.cos(a2)*R,y2=cy+Math.sin(a2)*R;
+      // Curve
+      const mx=cx+Math.cos((a1+a2)/2)*(R*0.6),my=cy+Math.sin((a1+a2)/2)*(R*0.6);
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.quadraticCurveTo(mx,my,x2,y2);
+      ctx.strokeStyle='rgba(255,60,60,0.25)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);
+      // Arrowhead
+      const dx=x2-mx,dy=y2-my;const len=Math.sqrt(dx*dx+dy*dy);const nx=dx/len,ny=dy/len;
+      ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-nx*10+ny*5,y2-ny*10-nx*5);ctx.lineTo(x2-nx*10-ny*5,y2-ny*10+nx*5);ctx.closePath();ctx.fillStyle='rgba(255,60,60,0.5)';ctx.fill();
+    });
+
+    // Draw nodes
+    steps.forEach((s,i)=>{
+      const ang=s.angle+t;
+      const x=cx+Math.cos(ang)*R,y=cy+Math.sin(ang)*R;
+      const isHov=hovIdx===i;
+      const r=isHov?40:32;
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle=s.color+(isHov?'ff':'cc');ctx.fill();
+      if(isHov){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();}
+      ctx.fillStyle='#0a0a0f';ctx.font=`bold ${r*0.28}px "Bebas Neue",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+      const words=s.label.split(' ');
+      words.forEach((w,wi)=>ctx.fillText(w,x,y+(wi-(words.length-1)/2)*r*0.3));
+      if(isHov){
+        ctx.fillStyle='rgba(10,10,15,0.92)';ctx.beginPath();ctx.roundRect(x-80,y+r+6,160,28,4);ctx.fill();
+        ctx.fillStyle='#e8e8f0';ctx.font='9px "Space Mono"';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(s.detail,x,y+r+20);
+      }
+    });
+
+    // Center label
+    ctx.fillStyle='rgba(255,60,60,0.08)';ctx.beginPath();ctx.arc(cx,cy,R*0.38,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(255,60,60,0.2)';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='#ff3c3c';ctx.font='bold 11px "Bebas Neue",sans-serif';ctx.letterSpacing='2px';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('THE LOOP',cx,cy-8);ctx.fillStyle='#555570';ctx.font='7px "Space Mono"';ctx.fillText('NEVER STOPS',cx,cy+8);
+    requestAnimationFrame(draw);
+  }
+  bc.addEventListener('mousemove',e=>{
+    const rect=bc.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+    const cx=bc.width/2,cy=bc.height/2,R=Math.min(bc.width,bc.height)*0.32;
+    hovIdx=-1;
+    steps.forEach((s,i)=>{const ang=s.angle+t,x=cx+Math.cos(ang)*R,y=cy+Math.sin(ang)*R;const d=Math.sqrt((mx-x)**2+(my-y)**2);if(d<40)hovIdx=i;});
+  });
+  bc.addEventListener('mouseleave',()=>hovIdx=-1);
+  window.addEventListener('resize',()=>{resize();});
+  resize();draw();
+})();
+
+// ═══════════════════════════════════════════
+// QUICKSAND FUNNEL
+// ═══════════════════════════════════════════
+(function(){
+  const fc=document.getElementById('funnel-canvas');
+  const ctx=fc.getContext('2d');
+  const stages=[
+    {label:'THE PITCH',sub:'Financial freedom awaits!',detail:'Aspirational language + fake urgency + cherry-picked testimonials from the top 0.01%. Real psychology: social proof, FOMO, and manufactured scarcity.',color:'#9b59b6',emoji:'✨'},
+    {label:'THE BUY-IN',sub:'Starter kit + first inventory',detail:'$500–$2,000 upfront. Now you\'re an "entrepreneur." Identity shifts immediately. Sunk cost begins. You\'ve got skin in the game.',color:'#f5c842',emoji:'💸'},
+    {label:'THE CONTENT FIREHOSE',sub:'Daily calls, tapes, conferences',detail:'Cognitive overload begins. No silence = no doubt. You\'re too busy consuming content to notice the numbers don\'t work. The upline profits from training sales regardless.',color:'#e67e22',emoji:'🎧'},
+    {label:'WEAPONIZE YOUR NETWORK',sub:'Pitch your warm market first',detail:'Friends, family, coworkers become sales leads. Trust relationships become business assets. Every "no" feels like personal rejection. You can\'t separate the business from who you are.',color:'#ff6633',emoji:'🫂'},
+    {label:'THE BLAME SHIFT',sub:'"You didn\'t hustle enough"',detail:'Sales fail — because the math guarantees most will fail. But the system is never the cause. Your mindset, work ethic, and belief are always the problem. Buy more training.',color:'#ff3c3c',emoji:'⚡'},
+    {label:'DEEPER INTO DEBT',sub:'More products, more "events"',detail:'Can\'t quit now — you\'ve spent too much. One more conference, one more subscription. Every exit feels like admitting failure, losing your community, and wasting everything spent.',color:'#cc2222',emoji:'🕳️'},
+    {label:'THE QUICKSAND',sub:'Debt + identity + isolation',detail:'You\'ve spent thousands. Your friends are your downline. Your community is the business. Quitting means losing your income, your identity, AND your social circle. The trap is complete.',color:'#7b0000',emoji:'⛓️'},
+  ];
+  let hovered=-1;
+  function resize(){fc.width=fc.offsetWidth;fc.height=460;}
+  function draw(){
+    const W=fc.width,H=fc.height;ctx.clearRect(0,0,W,H);
+    const totalH=H-40,stageH=totalH/stages.length;
+    stages.forEach((s,i)=>{
+      const topW=W*(1-i*0.07),botW=W*(1-(i+1)*0.07);
+      const topX=(W-topW)/2,botX=(W-botW)/2,y=20+i*stageH;
+      ctx.beginPath();ctx.moveTo(topX,y);ctx.lineTo(topX+topW,y);ctx.lineTo(botX+botW,y+stageH-2);ctx.lineTo(botX,y+stageH-2);ctx.closePath();
+      const isHov=hovered===i;
+      ctx.fillStyle=s.color+(isHov?'dd':'88');ctx.fill();
+      if(isHov){ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=1.5;ctx.stroke();}
+      ctx.fillStyle='#fff';ctx.font=`bold ${Math.min(13,stageH*0.3)}px "Bebas Neue",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(s.emoji+' '+s.label,W/2,y+stageH*0.38);
+      ctx.fillStyle='rgba(255,255,255,0.65)';ctx.font=`${Math.min(8,stageH*0.18)}px "Space Mono",monospace`;
+      ctx.fillText(s.sub,W/2,y+stageH*0.68);
+      if(isHov){
+        ctx.fillStyle='rgba(0,0,0,0.9)';
+        const dw=Math.min(W*0.75,520),dh=56,dx=(W-dw)/2;
+        let dy=y+stageH+4;if(dy>H-70)dy=y-64;
+        ctx.beginPath();ctx.roundRect(dx,dy,dw,dh,4);ctx.fill();
+        ctx.strokeStyle=s.color;ctx.lineWidth=1;ctx.stroke();
+        ctx.fillStyle='#e8e8f0';ctx.font='9px "Space Mono",monospace';ctx.textAlign='center';
+        const words=s.detail.split(' ');let line='',lines=[],ty=dy+12;
+        words.forEach(w=>{const test=line+w+' ';if(ctx.measureText(test).width>dw-20&&line){lines.push(line.trim());line=w+' ';}else line=test;});lines.push(line.trim());
+        lines.slice(0,3).forEach((l,li)=>ctx.fillText(l,W/2,ty+li*15));
+      }
+    });
+  }
+  fc.addEventListener('mousemove',e=>{const r=fc.getBoundingClientRect(),y=e.clientY-r.top-20,stageH=(fc.height-40)/stages.length;hovered=Math.min(Math.max(Math.floor(y/stageH),0),stages.length-1);draw();});
+  fc.addEventListener('mouseleave',()=>{hovered=-1;draw();});
+  window.addEventListener('resize',()=>{resize();draw();});
+  resize();draw();
+})();
+
+// ═══════════════════════════════════════════
+// QUICKSAND DEBT METER
+// ═══════════════════════════════════════════
+const qsItems=[
+  {label:'Starter kit / buy-in',min:200,max:3000,val:800,unit:'$'},
+  {label:'Monthly product minimums × 12',min:50,max:400,val:150,unit:'$/mo'},
+  {label:'Training calls / subscriptions × 12',min:0,max:200,val:49,unit:'$/mo'},
+  {label:'Conference / event tickets',min:0,max:1500,val:400,unit:'$/yr'},
+  {label:'Motivational books, CDs, pods',min:0,max:500,val:120,unit:'$/yr'},
+  {label:'Printing, websites, biz tools',min:0,max:400,val:80,unit:'$/yr'},
+];
+const qsGrid=document.getElementById('qs-grid');
+qsItems.forEach((item,i)=>{
+  const el=document.createElement('div');el.className='debt-meter';
+  el.innerHTML='<div class="debt-meter-label">'+item.label+'</div><div class="debt-bar-track"><div class="debt-bar-fill" id="qb'+i+'" style="width:'+((item.val-item.min)/(item.max-item.min)*100)+'%;"></div></div><input type="range" id="qs'+i+'" min="'+item.min+'" max="'+item.max+'" value="'+item.val+'" step="'+Math.max(10,Math.round((item.max-item.min)/30))+'" style="width:100%;margin-top:0.5rem;"><div style="display:flex;justify-content:space-between;margin-top:0.3rem;"><div class="debt-amount" id="qa'+i+'">$'+item.val+'</div><div class="debt-note">'+item.unit+'</div></div>';
+  qsGrid.appendChild(el);
+});
+function updateQS(){
+  let total=0;
+  qsItems.forEach((item,i)=>{
+    const v=parseInt(document.getElementById('qs'+i).value);
+    document.getElementById('qa'+i).textContent='$'+v.toLocaleString();
+    document.getElementById('qb'+i).style.width=((v-item.min)/(item.max-item.min)*100)+'%';
+    total+=item.unit==='$/mo'?v*12:item.unit==='$/yr'?v:v;
+  });
+  document.getElementById('qs-total').textContent='$'+total.toLocaleString();
+}
+qsItems.forEach((_,i)=>document.getElementById('qs'+i).oninput=updateQS);
+updateQS();
+
+// ═══════════════════════════════════════════
+// QUIZ — NAME THAT MLM
+// ═══════════════════════════════════════════
+const quizData=[
+  {company:'Herbalife',type:'Nutrition / Weight Loss',topEarnerPct:0.5,medianIncome:300,netLossPct:73,
+   question:'What percentage of Herbalife members make a meaningful annual income (over $5,000)?',
+   options:['About 35%','About 12%','Less than 1%','About 5%'],correct:2,
+   feedback:'Per Herbalife\'s own income disclosure, less than 1% of members earn more than $5,000/yr. The median member earns about $300/yr — before subtracting required product purchases. The company paid $200M to settle FTC charges in 2016.'},
+  {company:'Amway',type:'Consumer Products (The Oldest Major MLM)',topEarnerPct:0.26,medianIncome:207,netLossPct:99,
+   question:'The FTC examined Amway\'s income distribution. What did the average "Business Owner" earn annually?',
+   options:['$8,400','$3,200','$780','$207'],correct:3,
+   feedback:'The average Amway Business Owner made just $207/year. Amway is one of the oldest and most researched MLMs — and has one of the most damning income disclosures in the industry. Nearly 99% of participants lose money net of expenses.'},
+  {company:'LuLaRoe',type:'Leggings / Fashion MLM',topEarnerPct:0.01,medianIncome:0,netLossPct:80,
+   question:'LuLaRoe required consultants to buy large upfront inventory. What happened to most of it?',
+   options:['Sold at full price','Sold at a steep discount','Returned to LuLaRoe','Sat unsold in garages'],correct:3,
+   feedback:'80%+ of LuLaRoe consultants left losing money. Many had $20,000–$80,000 in unsold leggings stored in their homes. The company was sued by the state of Washington for operating a pyramid scheme and settled for $4.75M.'},
+  {company:'Monat',type:'Hair Care / Beauty',topEarnerPct:0.5,medianIncome:183,netLossPct:67,
+   question:'Monat\'s income disclosure shows the median "Market Partner" earns what annually?',
+   options:['$4,200','$1,800','$750','$183'],correct:3,
+   feedback:'$183/year — before subtracting the mandatory monthly product purchases required to stay "active." Most Monat partners are in net negative territory. The products also faced class-action suits over reported hair damage claims.'},
+  {company:'Nu Skin',type:'Anti-Aging / Skincare',topEarnerPct:0.5,medianIncome:89,netLossPct:90,
+   question:'Nu Skin calls its top rank "Brand Representatives." What percentage of all distributors reach this level?',
+   options:['About 8%','About 3%','Less than 0.5%','About 15%'],correct:2,
+   feedback:'Less than 0.5% reach the top rank. Nu Skin was fined $47M by the FTC in 2016 for deceptive income claims — specifically for showing top earner lifestyles without disclosing that the median distributor earns $89/year before expenses.'},
+  {company:'Primerica',type:'Financial Products / Insurance MLM',topEarnerPct:0.3,medianIncome:520,netLossPct:84,
+   question:'Primerica sells life insurance through an MLM model. What do they call their sales force?',
+   options:['"Independent Business Owners"','"Financial Representatives"','"Licensed Life Coaches"','"Market Partners"'],correct:1,
+   feedback:'The professional-sounding title creates an identity and makes quitting psychologically harder. Per their disclosure, 84% of "representatives" earned less than $5,000/yr before expenses — and most didn\'t recoup their licensing fees.'},
+  {company:'Arbonne',type:'Vegan Skincare / Wellness',topEarnerPct:0.03,medianIncome:742,netLossPct:86,
+   question:'Arbonne\'s pitch is "Be your own boss." What do they actually require to stay "Active" each month?',
+   options:['Sell $150 in products to customers','Buy $150 in products yourself','Recruit 2 new members','Attend 1 team training call'],correct:1,
+   feedback:'"Be your own boss" — but employment is contingent on buying $150+ of products yourself every month, whether you sell them or not. That\'s $1,800+/year in mandatory spending just to keep your spot. Arbonne\'s median consultant earns $742/yr gross before these costs.'},
+];
+let currentQ=0,score=0,answered=false;
+function renderQuiz(){
+  const q=quizData[currentQ];
+  document.getElementById('q-num').textContent=currentQ+1;
+  document.getElementById('q-total').textContent=quizData.length;
+  document.getElementById('q-progress').style.width=((currentQ+1)/quizData.length*100)+'%';
+  document.getElementById('quiz-body').innerHTML=`
+    <div class="quiz-company-reveal">
+      <div class="quiz-company-name">${q.company}</div>
+      <div class="quiz-company-type">${q.type}</div>
+    </div>
+    <div class="quiz-stat-display">
+      <div class="qsd-block"><div class="qsd-num">${q.netLossPct}%</div><div class="qsd-label">Participants lose money</div></div>
+      <div class="qsd-block"><div class="qsd-num">$${q.medianIncome}</div><div class="qsd-label">Median annual income</div></div>
+      <div class="qsd-block"><div class="qsd-num">${q.topEarnerPct}%</div><div class="qsd-label">Reach top rank</div></div>
+    </div>
+    <div class="quiz-question">${q.question}</div>
+    <div class="quiz-options">${q.options.map((opt,i)=>`<button class="quiz-option" onclick="answerQ(${i})" id="qopt${i}">${opt}</button>`).join('')}</div>
+    <div class="quiz-feedback" id="quiz-feedback"></div>
+    <div class="quiz-nav">
+      <div class="quiz-score-badge">Score: ${score}/${currentQ}</div>
+      <button class="btn gold-btn" id="q-next-btn" onclick="nextQ()" style="display:none;">${currentQ===quizData.length-1?'See Final Score →':'Next Question →'}</button>
+    </div>`;
+  answered=false;
+}
+function answerQ(idx){
+  if(answered)return;answered=true;
+  const q=quizData[currentQ],isCorrect=idx===q.correct;
+  if(isCorrect)score++;
+  document.querySelectorAll('.quiz-option').forEach((el,i)=>{el.classList.add('locked');if(i===q.correct)el.classList.add('correct');else if(i===idx&&!isCorrect)el.classList.add('wrong');});
+  const fb=document.getElementById('quiz-feedback');
+  fb.className='quiz-feedback show '+(isCorrect?'correct-fb':'wrong-fb');
+  fb.innerHTML='<strong>'+(isCorrect?'✓ Correct':'✗ Wrong')+'</strong> — '+q.feedback;
+  document.getElementById('q-next-btn').style.display='block';
+  document.querySelector('.quiz-score-badge').textContent='Score: '+score+'/'+(currentQ+1);
+}
+function nextQ(){currentQ++;if(currentQ>=quizData.length){showQuizFinal();return;}renderQuiz();}
+function showQuizFinal(){
+  const pct=Math.round(score/quizData.length*100);
+  const msg=pct>=80?'You can see through the machine. Share this with someone who needs to see it.':pct>=50?'You\'re starting to see it. Go back and look at the income disclosure numbers — they\'re all public record.':'The system is designed to be hard to see. That\'s the whole point. Go through it again.';
+  document.getElementById('quiz-body').innerHTML=`<div class="quiz-final"><div style="font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);">Final Score</div><div class="quiz-final-score">${score}/${quizData.length}</div><div style="font-family:'Bebas Neue';font-size:2rem;color:var(--gold);margin-bottom:1rem;">${pct}% Correct</div><div class="quiz-final-msg">${msg}</div><button class="btn gold-btn" onclick="currentQ=0;score=0;renderQuiz();" style="margin-top:1.5rem;">↺ Play Again</button></div>`;
+}
+renderQuiz();
+
+// ═══════════════════════════════════════════
+// SOCIAL COST CALCULATOR
+// ═══════════════════════════════════════════
+const sClose=document.getElementById('s-close'),sAcquaint=document.getElementById('s-acquaint');
+const sMonths=document.getElementById('s-months'),sMsgs=document.getElementById('s-msgs');
+const socialCanvas=document.getElementById('social-canvas'),socialCtx=socialCanvas.getContext('2d');
+function calcSocial(){
+  const close=parseInt(sClose.value),acquaint=parseInt(sAcquaint.value);
+  const months=parseInt(sMonths.value),msgs=parseInt(sMsgs.value);
+  document.getElementById('s-close-val').textContent=close+' people';
+  document.getElementById('s-acquaint-val').textContent=acquaint+' people';
+  document.getElementById('s-months-val').textContent=months+' months';
+  document.getElementById('s-msgs-val').textContent=msgs+' messages';
+  const total=close+acquaint;
+  const closePitched=Math.min(Math.round(close*0.72),close);
+  const acquaintPitched=Math.min(Math.round(acquaint*0.62),acquaint);
+  const pitched=closePitched+acquaintPitched;
+  const lostClose=Math.round(closePitched*0.42);
+  const totalMsgs=months*msgs;
+  const awkward=Math.round(months*1.5);
+  const estNetLoss=Math.round(months*280);
+  const results=[
+    {label:'Total people in your network',val:total,cls:'ok'},
+    {label:'Est. people pitched total',val:pitched,cls:''},
+    {label:'Close friends/family pitched',val:closePitched,cls:''},
+    {label:'Close relationships significantly strained or lost',val:lostClose,cls:''},
+    {label:'Total pitch messages sent',val:totalMsgs.toLocaleString(),cls:''},
+    {label:'Awkward gatherings / family events (est.)',val:awkward,cls:''},
+    {label:'Estimated net financial loss ($280/mo avg)',val:'$'+estNetLoss.toLocaleString(),cls:''},
+  ];
+  document.getElementById('social-results').innerHTML=results.map(r=>'<div class="sr-row"><span class="sr-label">'+r.label+'</span><span class="sr-value '+r.cls+'">'+r.val+'</span></div>').join('');
+  drawSocialChart(close,acquaint,closePitched,acquaintPitched,lostClose);
+  drawRelGrid(close,acquaint,closePitched,lostClose);
+}
+function drawSocialChart(close,acquaint,closePitched,acquaintPitched,lostClose){
+  const W=socialCanvas.width=socialCanvas.offsetWidth,H=300;socialCanvas.height=H;socialCtx.clearRect(0,0,W,H);
+  const data=[
+    {label:'Close\n(safe)',val:close-closePitched,color:'#2ecc71'},
+    {label:'Close\n(strained)',val:closePitched-lostClose,color:'#f5c842'},
+    {label:'Close\n(lost)',val:lostClose,color:'#ff3c3c'},
+    {label:'Acquaint.\n(pitched)',val:acquaintPitched,color:'#e67e22'},
+    {label:'Acquaint.\n(untouched)',val:Math.max(acquaint-acquaintPitched,0),color:'#3498db'},
+  ].filter(d=>d.val>0);
+  const tot=data.reduce((s,d)=>s+d.val,0);
+  if(!tot)return;
+  const cx=W/2,cy=H/2-10,r=Math.min(W/2-60,H/2-40);
+  let ang=-Math.PI/2;
+  data.forEach(d=>{
+    const slice=(d.val/tot)*Math.PI*2;
+    socialCtx.beginPath();socialCtx.moveTo(cx,cy);socialCtx.arc(cx,cy,r,ang,ang+slice);socialCtx.closePath();
+    socialCtx.fillStyle=d.color+'cc';socialCtx.fill();socialCtx.strokeStyle=d.color;socialCtx.lineWidth=2;socialCtx.stroke();
+    const mid=ang+slice/2,lx=cx+Math.cos(mid)*(r+26),ly=cy+Math.sin(mid)*(r+26);
+    socialCtx.fillStyle='#888899';socialCtx.font='8px "Space Mono"';socialCtx.textAlign=lx>cx?'left':'right';socialCtx.textBaseline='middle';
+    d.label.split('\n').forEach((l,i)=>socialCtx.fillText(l,lx,ly+i*10-5));
+    ang+=slice;
+  });
+}
+function drawRelGrid(close,acquaint,closePitched,lostClose){
+  const grid=document.getElementById('rel-grid');grid.innerHTML='';
+  const total=Math.min(close+acquaint,80);
+  const closeEmojis=['👨‍👩‍👧','👫','🤝','🧑‍🤝‍🧑','👩','👨','🧑'];
+  const acqEmojis=['🧑‍💼','👤','💁','👩‍💼','🤵'];
+  for(let i=0;i<total;i++){
+    const isClose=i<close;
+    const isPitched=isClose?(i<closePitched):(i-close)<Math.round(acquaint*0.62);
+    const isLost=isClose&&i<lostClose;
+    const em=isClose?closeEmojis[i%closeEmojis.length]:acqEmojis[(i-close)%acqEmojis.length];
+    const div=document.createElement('div');
+    div.className='rel-dot';
+    div.title=isLost?'Lost relationship':'isPitched'?'Pitched — strained':'Not pitched';
+    div.style.background=isLost?'rgba(255,60,60,0.08)':isPitched?'rgba(245,200,66,0.15)':'rgba(255,255,255,0.03)';
+    div.style.borderColor=isLost?'var(--accent)':isPitched&&!isLost?'var(--gold)':isPitched?'var(--green)':'transparent';
+    div.style.opacity=isLost?'0.35':'1';
+    div.textContent=em;
+    grid.appendChild(div);
+  }
+}
+sClose.oninput=sAcquaint.oninput=sMonths.oninput=sMsgs.oninput=calcSocial;
+window.addEventListener('resize',()=>setTimeout(calcSocial,50));calcSocial();
+
+// ═══════════════════════════════════════════
+// AI MULTIPLIER BAR ANIMATION
+// ═══════════════════════════════════════════
+(function(){
+  const bar = document.getElementById('ai-mult-bar');
+  if(!bar) return;
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if(e.isIntersecting){
+        document.querySelectorAll('.ai-mult-ai').forEach((el, i) => {
+          setTimeout(() => {
+            el.style.opacity = '1';
+            el.style.width = el.dataset.w;
+          }, i * 200);
+        });
+        obs.disconnect();
+      }
+    });
+  }, {threshold: 0.3});
+  obs.observe(bar);
+})();
+
+// ═══════════════════════════════════════════
+// RESCUE TOOL
+// ═══════════════════════════════════════════
+const mlmData = {
+  'Herbalife':      {medianIncome:300, netLossPct:73, category:'nutrition', minMonthly:150},
+  'Amway':          {medianIncome:207, netLossPct:99, category:'household', minMonthly:100},
+  'LuLaRoe':        {medianIncome:0,   netLossPct:80, category:'clothing',  minMonthly:200},
+  'Monat':          {medianIncome:183, netLossPct:67, category:'haircare',  minMonthly:84},
+  'Nu Skin':        {medianIncome:89,  netLossPct:90, category:'skincare',  minMonthly:100},
+  'Primerica':      {medianIncome:520, netLossPct:84, category:'financial', minMonthly:25},
+  'Arbonne':        {medianIncome:742, netLossPct:86, category:'skincare',  minMonthly:150},
+  'doTERRA':        {medianIncome:220, netLossPct:78, category:'oils',      minMonthly:100},
+  'Young Living':   {medianIncome:190, netLossPct:80, category:'oils',      minMonthly:100},
+  'Mary Kay':       {medianIncome:180, netLossPct:99, category:'cosmetics', minMonthly:225},
+  'Avon':           {medianIncome:130, netLossPct:87, category:'cosmetics', minMonthly:40},
+  'Rodan + Fields': {medianIncome:880, netLossPct:76, category:'skincare',  minMonthly:80},
+  'Tupperware':     {medianIncome:120, netLossPct:94, category:'kitchen',   minMonthly:0},
+  'Pampered Chef':  {medianIncome:150, netLossPct:88, category:'kitchen',   minMonthly:0},
+  'Isagenix':       {medianIncome:210, netLossPct:90, category:'nutrition', minMonthly:150},
+  'Beachbody / BODi':{medianIncome:260, netLossPct:82, category:'fitness', minMonthly:38},
+  '4Life':          {medianIncome:170, netLossPct:91, category:'nutrition', minMonthly:100},
+  'ACN':            {medianIncome:400, netLossPct:79, category:'telecom',   minMonthly:0},
+};
+const retailMarkup = { nutrition:3.2, household:2.8, clothing:2.5, haircare:3.5, skincare:4.0, financial:1.2, oils:4.5, cosmetics:3.0, kitchen:2.0, fitness:2.2, telecom:1.1 };
+const levelMultiplier = [0, 0.12, 0.28, 0.55, 0.82, 1.0];
+
+let rescueStep = 0;
+let selectedLevel = 0;
+let productRows = [];
+
+function mlmSelectChange(){
+  const v = document.getElementById('r-mlm-select').value;
+  document.getElementById('r-mlm-other-wrap').style.display = v === 'other' ? 'block' : 'none';
+}
+function pickLevel(el){
+  document.querySelectorAll('.lvl-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedLevel = parseInt(el.dataset.level);
+}
+
+let productCount = 0;
+function addProduct(name='', mlmPrice='', retailEst=''){
+  const id = productCount++;
+  const div = document.createElement('div');
+  div.className = 'product-row';
+  div.id = 'pr-'+id;
+  div.innerHTML = `
+    <input type="text" placeholder="Product / cost name" value="${name}" id="pname${id}">
+    <input type="number" placeholder="$/mo" min="0" value="${mlmPrice}" id="pprice${id}">
+    <input type="number" placeholder="retail $" min="0" value="${retailEst}" id="pretail${id}">
+    <button class="del-btn" onclick="removeProduct('pr-${id}')">✕</button>`;
+  document.getElementById('product-list').appendChild(div);
+  productRows.push(id);
+}
+function removeProduct(id){ const el=document.getElementById(id); if(el)el.remove(); }
+
+function seedProducts(mlmName){
+  document.getElementById('product-list').innerHTML = '';
+  productRows = []; productCount = 0;
+  const seeds = {
+    'Herbalife':      [['Formula 1 Shake (30 srv)', 89, 28],['Multivitamin Complex', 54, 14],['Herbal Tea Concentrate', 46, 12]],
+    'Amway':          [['Nutrilite Protein (2lb)', 58, 22],['Artistry Skincare Set', 120, 35],['Home Care Bundle', 80, 25]],
+    'LuLaRoe':        [['Leggings inventory (est.)', 250, 0],['Consultant tools/bags', 40, 0]],
+    'doTERRA':        [['Essential Oil Kit', 150, 32],['Supplement bundle', 90, 25]],
+    'Young Living':   [['Premium Starter Kit (÷12)', 25, 0],['Monthly wellness bundle', 100, 28]],
+    'Mary Kay':       [['TimeWise Skin Set', 110, 30],['Color product inventory', 115, 0]],
+    'Monat':          [['Rejuveniqe Oil', 89, 18],['Shampoo + Conditioner', 72, 16]],
+    'Arbonne':        [['RE9 Skincare Set', 220, 45],['Protein Shake (30 sv)', 89, 28]],
+    'Isagenix':       [['30-day cleanse pack', 375, 0],['IsaLean Shake (30 sv)', 129, 35]],
+    'Nu Skin':        [['ageLOC Me System', 190, 40],['Pharmanex Supplements', 110, 22]],
+  };
+  const rows = seeds[mlmName] || [['Monthly product minimum', mlmData[mlmName]?.minMonthly || 100, '']];
+  rows.forEach(r => addProduct(r[0], r[1], r[2]));
+}
+
+function setRescueStep(step){
+  document.querySelectorAll('.rescue-panel').forEach((p,i) => p.classList.toggle('active', i===step));
+  for(let i=0;i<5;i++){
+    const dot = document.getElementById('rdot'+i);
+    const lbl = document.getElementById('rlbl'+i);
+    const line = document.getElementById('rline'+i);
+    if(dot){ dot.classList.toggle('done', i<step); dot.classList.toggle('active', i===step); if(i<step)dot.textContent='✓'; }
+    if(lbl){ lbl.classList.toggle('active', i===step); }
+    if(line){ line.classList.toggle('done', i<step); }
+  }
+  rescueStep = step;
+  document.getElementById('rescue-section').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function rescueNext(from){
+  if(from===0){
+    const sel = document.getElementById('r-mlm-select').value;
+    if(!sel){ alert('Please select your MLM.'); return; }
+    const mlmName = sel === 'other' ? document.getElementById('r-mlm-other').value.trim() || 'Your MLM' : sel;
+    window._rescueMlm = mlmName;
+    seedProducts(sel !== 'other' ? sel : '');
+  }
+  setRescueStep(from+1);
+}
+function rescueBack(from){ setRescueStep(from-1); }
+
+function generateReport(){
+  const mlmName  = window._rescueMlm || 'Your MLM';
+  const who      = document.getElementById('r-who').value;
+  const months   = parseInt(document.getElementById('r-months').value) || 18;
+  const hrsWeek  = parseInt(document.getElementById('r-hrs-week').value) || 15;
+  const buyin    = parseFloat(document.getElementById('r-buyin').value) || 0;
+  const events   = parseFloat(document.getElementById('r-events').value) || 0;
+  const training = parseFloat(document.getElementById('r-training').value) || 0;
+  const closeP   = parseInt(document.getElementById('r-close-pitched').value) || 0;
+  const damaged  = parseInt(document.getElementById('r-damaged').value) || 0;
+  const dream    = document.getElementById('r-dream').value.trim();
+  const lost     = document.getElementById('r-lost').value;
+  const feeling  = document.getElementById('r-feeling').value;
+  const name     = document.getElementById('r-name').value.trim() || (who==='me' ? 'Friend' : 'Your loved one');
+
+  // Collect products
+  let monthlyMlm = 0, monthlyRetail = 0;
+  document.querySelectorAll('.product-row').forEach(row => {
+    const pid = row.id.replace('pr-','');
+    const p = parseFloat(document.getElementById('pprice'+pid)?.value) || 0;
+    const r = parseFloat(document.getElementById('pretail'+pid)?.value) || 0;
+    monthlyMlm += p;
+    monthlyRetail += r || (p / (retailMarkup[mlmData[mlmName]?.category || 'nutrition'] || 3));
+  });
+  const monthlyTraining = training;
+  const totalMonthly = monthlyMlm + monthlyTraining;
+
+  // MONEY
+  const totalSpent = Math.round(buyin + (totalMonthly * months) + events);
+  const retailEquiv = Math.round((monthlyRetail * months) + buyin * 0.1);
+  const overpaid = Math.max(totalSpent - retailEquiv, 0);
+  const mInfo = mlmData[mlmName] || {medianIncome:200, netLossPct:82};
+  const grossIncome = Math.round(mInfo.medianIncome * (months/12) * levelMultiplier[selectedLevel]);
+  const netLoss = Math.max(totalSpent - grossIncome, 0);
+  const investedVal = Math.round(totalMonthly * ((Math.pow(1+0.07/12, months)-1)/(0.07/12)));
+
+  // TIME
+  const totalHours = Math.round(hrsWeek * (months * 4.33));
+  const sellHours  = Math.round(totalHours * 0.35);
+  const recruitHrs = Math.round(totalHours * 0.25);
+  const contentHrs = Math.round(totalHours * 0.25);
+  const adminHrs   = Math.round(totalHours * 0.15);
+  const minWageVal = Math.round(totalHours * 12);
+  const skillDays  = Math.round(totalHours / 8);
+
+  // SOCIAL
+  const totalPitched = Math.round(closeP * 0.7 + closeP * 0.3);
+  const awkwardMoments = Math.round(months * 1.8);
+  const msgsSent = Math.round(months * 4.33 * (hrsWeek > 20 ? 18 : 10));
+
+  // OPPORTUNITY
+  const lostLabel = {kids:'your kids',partner:'your partner',family:'your family',friends:'your friends',self:'your own growth',health:'your health',career:'your career'};
+  const dreamText = dream || 'a personal project or goal you\'d been wanting to pursue';
+  const skillMonths = Math.max(months - 3, 1);
+
+  // TONE
+  const toneMap = {
+    angry:      { opener: `${name}, you were lied to. Not by a mistake — by a system designed to lie. Here's what that system actually cost you.`, closer: 'Your anger is justified. And it is useful energy. The people who built this system are counting on you staying too embarrassed or too deep to speak up. You speaking up is what protects the next person.' },
+    embarrassed:{ opener: `${name}, there is nothing to be ashamed of. These systems are engineered by professionals to exploit trust. They've fooled millions of people who are smart, hardworking, and decent. Here's what the real cost looks like — so you can stop blaming yourself.`, closer: 'The embarrassment belongs to the people who built this system, not the people they trapped in it. Your willingness to look at this honestly is a kind of courage.' },
+    sad:        { opener: `${name}, what you lost goes beyond what any calculator can capture. But seeing it clearly — really seeing it — is the first step to reclaiming what's still ahead of you.`, closer: 'What happened is real, and the loss is real. But so is what comes next. The time and relationships ahead of you are still yours.' },
+    stuck:      { opener: `${name}, you haven't left yet — and that's okay. This report is not a guilt trip. It's a flashlight. Let's look at what staying is actually costing you, right now, each month.`, closer: 'Every month you stay costs more than a month already spent. The sunk cost fallacy says "I\'ve come too far to quit." The math says the opposite. The best time to stop was earlier. The second best time is now.' },
+    helping:    { opener: `Here's what the numbers look like for the person you're trying to help. Sometimes seeing it laid out — not as an argument but as a clear accounting — is what makes it real.`, closer: 'The most powerful thing you can do is not argue the logic. Share this report. Let the numbers speak. Then be the safe, non-judgmental person they can come to when they\'re ready.' },
+    curious:    { opener: `Here's the full picture — not just the financial cost, but the complete accounting of what MLM participation typically costs across all dimensions of a person\'s life.`, closer: 'The numbers don\'t lie. The system does. Understanding how it works is the first defense against it.' },
+  };
+  const tone = toneMap[feeling] || toneMap.curious;
+
+  const panel = document.getElementById('rpanel4');
+  panel.innerHTML = `
+  <div class="rescue-result-wrap">
+    <div class="result-header">
+      <div class="result-name">${name}'s Rescue Report</div>
+      <div class="result-sub">${mlmName} · ${months} months · ${['Starter','Associate','Silver','Gold','Platinum','Diamond+'][selectedLevel]} level</div>
+    </div>
+
+    <div style="background:var(--card);border:1px solid rgba(46,204,113,0.3);border-radius:4px;padding:1.5rem;margin-bottom:2rem;font-size:0.8rem;line-height:1.9;color:var(--text-dim);border-left:4px solid var(--green);">
+      <strong style="color:var(--text);">${tone.opener}</strong>
+    </div>
+
+    <div class="result-grid">
+      <div class="rg-card money">
+        <div class="rg-icon">💸</div>
+        <div class="rg-label">Total Money Spent</div>
+        <div class="rg-value">$${netLoss.toLocaleString()}</div>
+        <div class="rg-detail">
+          Estimated net loss after subtracting any income earned.<br><br>
+          • Buy-in / starter kit: <strong>$${buyin.toLocaleString()}</strong><br>
+          • Monthly products × ${months}mo: <strong>$${(monthlyMlm*months).toLocaleString()}</strong><br>
+          • Training & subscriptions: <strong>$${(training*months).toLocaleString()}</strong><br>
+          • Events & conferences: <strong>$${events.toLocaleString()}</strong><br>
+          • Est. gross income: <strong style="color:var(--green);">+$${grossIncome.toLocaleString()}</strong><br><br>
+          That same $${Math.round(totalMonthly)}/month invested in an index fund would be worth <strong style="color:var(--green);">$${investedVal.toLocaleString()}</strong> today.
+        </div>
+      </div>
+
+      <div class="rg-card time">
+        <div class="rg-icon">⏱️</div>
+        <div class="rg-label">Total Hours Spent</div>
+        <div class="rg-value">${totalHours.toLocaleString()} hrs</div>
+        <div class="rg-detail">
+          ${hrsWeek} hrs/week × ${months} months.<br><br>
+          • Selling / pitching: <strong>~${sellHours} hrs</strong><br>
+          • Recruiting / follow-up: <strong>~${recruitHrs} hrs</strong><br>
+          • Consuming training content: <strong>~${contentHrs} hrs</strong><br>
+          • Admin, events, calls: <strong>~${adminHrs} hrs</strong><br><br>
+          At minimum wage ($12/hr), that time was worth <strong>$${minWageVal.toLocaleString()}</strong>. In ${skillDays} full working days, you could have completed a professional certification, launched a small business, or written a book.
+        </div>
+      </div>
+
+      <div class="rg-card social">
+        <div class="rg-icon">💔</div>
+        <div class="rg-label">Relationship Impact</div>
+        <div class="rg-value">${closeP} people</div>
+        <div class="rg-detail">
+          Close friends and family pitched.<br><br>
+          • Estimated relationships strained: <strong>${Math.round(closeP*0.45)}</strong><br>
+          • Relationships you feel damaged: <strong>${damaged}</strong><br>
+          • Estimated awkward moments: <strong>~${awkwardMoments}</strong><br>
+          • Pitch messages sent: <strong>~${msgsSent.toLocaleString()}</strong><br><br>
+          These relationships are repairable. An honest conversation — <em>"I was caught up in something that wasn't what I thought"</em> — is disarming in a way that most people respond to with warmth.
+        </div>
+      </div>
+
+      <div class="rg-card opp">
+        <div class="rg-icon">🌱</div>
+        <div class="rg-label">Opportunities Deferred</div>
+        <div class="rg-value">${months} months</div>
+        <div class="rg-detail">
+          Time redirected away from ${lostLabel[lost]}.<br><br>
+          ${dream ? `• Your deferred dream: <strong>"${dreamText}"</strong> — ${skillMonths} months of part-time work on this could have produced real results by now.<br><br>` : ''}
+          • In ${months} months of ${hrsWeek} hrs/week, you could have: earned a trade certification (avg 6 months), launched a local service business, learned a marketable skill like coding or design, or built $${investedVal.toLocaleString()} in real savings.<br><br>
+          None of that time is gone. It's just deferred.
+        </div>
+      </div>
+    </div>
+
+    <div class="result-narrative">
+      <div class="rn-title">What Actually Happened — and Why It's Not Your Fault</div>
+      <div class="rn-body">
+        ${mlmName} has a documented income disclosure. <span class="hurt">${mInfo.netLossPct}% of participants lose money.</span> The median annual income is <span class="hurt">$${mInfo.medianIncome}</span> — before subtracting the cost of required product purchases. <strong>This is not a failure of your effort, mindset, or belief. It is a mathematical guarantee.</strong><br><br>
+        The system told you that success was a decision. That grind was the missing ingredient. That the people who failed simply didn't want it badly enough. <strong>That is the most refined lie in the machine</strong> — because it takes a structural problem that is the system's fault and places the blame entirely on you. It keeps you spending. It keeps you silent. It keeps you inside.<br><br>
+        <span class="highlight">You were not weak. You were targeted.</span> These systems are designed and tested by professionals over decades to exploit exactly the psychological traits that make people good: trust, optimism, loyalty, hard work, love for their families. The fact that you worked hard inside the system is proof of your character — not evidence that you failed.
+      </div>
+    </div>
+
+    <div class="what-now">
+      <div class="wn-title">🧭 What Comes Next — Step by Step</div>
+      ${feeling === 'stuck' ? `
+      <div class="wn-step">
+        <div class="wn-num">0</div>
+        <div>
+          <div class="wn-content-title">Before Anything Else — Give Yourself Permission to Stop</div>
+          <div class="wn-content-body">You do not owe the system one more month of purchases. You do not owe your upline a conversation. You do not need to "wind down properly." You can stop today. Cancel the autoship. Unsubscribe. The money already spent does not require more money to honor it.</div>
+        </div>
+      </div>` : ''}
+      <div class="wn-step">
+        <div class="wn-num">1</div>
+        <div>
+          <div class="wn-content-title">Take Inventory of What's Recoverable</div>
+          <div class="wn-content-body">Many MLM contracts allow returns of unsold inventory within a window (often 12 months from purchase, 70–90% buyback legally required in most US states). Check your company's policies. Document everything you have. <a href="https://www.ftc.gov/tips-advice/business-center/guidance/multilevel-marketing" target="_blank">The FTC has guidance on MLM return rights.</a></div>
+        </div>
+      </div>
+      <div class="wn-step">
+        <div class="wn-num">2</div>
+        <div>
+          <div class="wn-content-title">Stop the Bleeding — Today</div>
+          <div class="wn-content-body">Cancel every recurring charge: monthly autoship, training subscriptions, app fees, group memberships. Each month you delay costs $${Math.round(totalMonthly)} more. That money can start compounding for you instead of against you.</div>
+        </div>
+      </div>
+      <div class="wn-step">
+        <div class="wn-num">3</div>
+        <div>
+          <div class="wn-content-title">Rebuild the Relationships</div>
+          <div class="wn-content-body">Start with honesty. Not a long explanation — just: "I got caught up in something that wasn't what it seemed. I'm sorry if I made you uncomfortable. I value you more than any business." Most people will respond with relief, not judgment. The ones who genuinely support you were waiting for this.</div>
+        </div>
+      </div>
+      <div class="wn-step">
+        <div class="wn-num">4</div>
+        <div>
+          <div class="wn-content-title">Put That Monthly Cost to Work — For Real</div>
+          <div class="wn-content-body">The $${Math.round(totalMonthly)}/month you were spending? Start there. A high-yield savings account earns 4–5% with zero risk. An index fund (VOO, FZROX) earns ~10%/yr long-term with no meetings, no team, no pitch. $${Math.round(totalMonthly)}/month for ${months} more months = <strong>$${Math.round(totalMonthly*((Math.pow(1.07/12+1,months)-1)/(0.07/12))).toLocaleString()} at 7% return</strong>.</div>
+        </div>
+      </div>
+      ${dream ? `<div class="wn-step">
+        <div class="wn-num">5</div>
+        <div>
+          <div class="wn-content-title">Come Back to "${dreamText}"</div>
+          <div class="wn-content-body">This dream is still there. The skills, the market, the passion — none of that expired. You now have something most people starting from scratch don't: you understand how predatory systems work. That makes you harder to fool and better equipped to build something real.</div>
+        </div>
+      </div>` : ''}
+      <div class="wn-step">
+        <div class="wn-num" style="background:var(--blue);">?</div>
+        <div>
+          <div class="wn-content-title">If You Need to Talk to Someone</div>
+          <div class="wn-content-body">
+            MLM recovery is real and there are communities of people who understand exactly what you've been through. No judgment.<br><br>
+            • <a href="https://www.reddit.com/r/antiMLM/" target="_blank">r/antiMLM</a> — community of survivors and researchers<br>
+            • <a href="https://www.bbb.org/article/news-releases/23068-is-it-a-pyramid-scheme" target="_blank">BBB Pyramid Scheme Guide</a> — know your rights<br>
+            • <a href="https://www.ftc.gov/news-events/topics/pyramid-schemes" target="_blank">FTC Pyramid Scheme Resources</a> — file a complaint<br>
+            • If you're supporting a loved one: <a href="https://www.cultrecovery101.com" target="_blank">Cult Recovery 101</a> has resources specifically for helping someone exit a high-control group
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--card);border:1px solid rgba(46,204,113,0.25);border-radius:4px;padding:1.5rem;margin-bottom:2rem;font-size:0.75rem;line-height:1.9;color:var(--text-dim);">
+      <strong style="color:var(--green);">One last thing, ${name}:</strong> ${tone.closer}
+    </div>
+
+    <div class="alt-paths">
+      <div class="alt-card">
+        <div class="alt-emoji">🏪</div>
+        <div class="alt-title">Build Something Real</div>
+        <div class="alt-body">A local service business — cleaning, lawn care, tutoring, food — built in your community, with real customers who need you. No downline. No pitch. No buy-in.</div>
+      </div>
+      <div class="alt-card">
+        <div class="alt-emoji">📈</div>
+        <div class="alt-title">Invest the Difference</div>
+        <div class="alt-body">$${Math.round(totalMonthly)}/month into an index fund. No meetings. No team. No "vision board." Just compounding returns that work while you sleep — which is what passive income actually looks like.</div>
+      </div>
+      <div class="alt-card">
+        <div class="alt-emoji">🎁</div>
+        <div class="alt-title">Give Your Time Back</div>
+        <div class="alt-body">${totalHours.toLocaleString()} hours is a lot. Imagine that time going toward ${lostLabel[lost]}, or toward ${dreamText.length > 3 ? '"'+dreamText+'"' : 'a dream you put on hold'}. That version of your life is still available.</div>
+      </div>
+    </div>
+
+    <button class="restart-btn" onclick="restartRescue()">↺ Start Over — Run a New Report</button>
+  </div>`;
+
+  setRescueStep(4);
+}
+
+function restartRescue(){
+  document.getElementById('r-mlm-select').value = '';
+  document.getElementById('r-mlm-other-wrap').style.display = 'none';
+  document.getElementById('product-list').innerHTML = '';
+  productRows = []; productCount = 0;
+  selectedLevel = 0;
+  document.querySelectorAll('.lvl-btn').forEach((b,i) => b.classList.toggle('selected', i===0));
+  setRescueStep(0);
+}
+
+// Pre-seed with a sample product row
+addProduct('Monthly product minimum', 150, 40);
+
+</script>
+</body>
+</html>
