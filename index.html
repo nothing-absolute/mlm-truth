@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,15 +8,51 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 :root {
-  --bg:#0a0a0f; --surface:#12121a; --card:#1a1a28; --border:#2a2a40;
-  --accent:#ff3c3c; --gold:#f5c842; --green:#2ecc71; --blue:#3498db;
-  --purple:#9b59b6; --muted:#555570; --text:#e8e8f0; --text-dim:#8888aa;
+  --bg-rgb: 253, 252, 251;
+  /* LIGHT MODE (Mistral Inspired) */
+  --bg: #fdfcfb;
+  --surface: #f5f2ed;
+  --card: #ffffff;
+  --border: #e2e2e2;
+  --text: #131313;
+  --text-dim: #666666;
+  --accent: #ff5f1f;
+  --accent-soft: rgba(255, 95, 31, 0.1);
+  --gold: #d4af37;
+  --green: #27ae60;
+  --blue: #2980b9;
+  --muted: #999999;
+  --terminal-bg: #1a1a1a;
+  --terminal-text: #00ff41;
+}
+
+[data-theme="dark"] {
+  --bg-rgb: 13, 13, 13;
+  /* DARK MODE (Technical/Terminal) */
+  --bg: #0d0d0d;
+  --surface: #161616;
+  --card: #1e1e1e;
+  --border: #333333;
+  --text: #e0e0e0;
+  --text-dim: #999999;
+  --accent: #ff5f1f;
+  --accent-soft: rgba(255, 95, 31, 0.2);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html{scroll-behavior:smooth;}
-body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;overflow-x:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;overflow-x:hidden;transition: background 0.3s, color 0.3s;}
 
-nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,10,15,0.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:54px;flex-wrap:wrap;}
+.pixel-bg {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.3;
+  z-index: -1;
+  pointer-events: none;
+}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(var(--bg-rgb), 0.8);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:54px;flex-wrap:wrap;}
 .nav-logo{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;color:var(--accent);}
 .nav-links{display:flex;gap:0.8rem;list-style:none;flex-wrap:wrap;}
 .nav-links a{color:var(--text-dim);text-decoration:none;font-size:0.55rem;letter-spacing:1px;text-transform:uppercase;transition:color 0.2s;}
@@ -320,6 +356,60 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 .rescue-panel{display:none;animation:fadeUp 0.4s ease both;}
 .rescue-panel.active{display:block;}
 
+/* SCROLLYTELLING */
+.scrolly-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.scrolly-section {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10vh 2rem;
+}
+
+.scrolly-section.sticky {
+  height: 200vh; /* Scroll length */
+  display: block;
+  padding: 0;
+}
+
+.sticky-content {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.scrolly-text {
+  position: relative;
+  z-index: 10;
+  max-width: 550px;
+  background: rgba(var(--bg-rgb), 0.95);
+  padding: 3rem;
+  border-left: 4px solid var(--accent);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.scrolly-visual {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-right: 5%;
+}
+
 .r-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2rem;margin-bottom:1.2rem;}
 .r-card-title{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:1px;margin-bottom:0.3rem;}
 .r-card-sub{font-size:0.62rem;color:var(--text-dim);margin-bottom:1.2rem;line-height:1.6;}
@@ -434,12 +524,15 @@ footer{border-top:1px solid var(--border);text-align:center;padding:2rem;font-si
     <li><a href="#ai-firehose-wrap" onclick="document.querySelector('.ai-firehose-wrap').scrollIntoView({behavior:'smooth'});return false;" style="color:var(--blue);">AI Threat</a></li>
     <li><a href="#quiz-section">Quiz</a></li>
     <li><a href="#social-section">Social Cost</a></li>
+    <li><a href="#survivor-section">Stories</a></li>
     <li><a href="#rescue-section" style="color:var(--green);">🤝 Rescue</a></li>
+    <li><button id="theme-toggle" class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.5rem;">🌓</button></li>
   </ul>
 </nav>
 
 <!-- HERO -->
 <section id="hero">
+  <div class="pixel-bg"></div>
   <canvas id="hero-canvas"></canvas>
   <div class="hero-content">
     <div class="hero-label">An Interactive Investigation</div>
@@ -451,59 +544,60 @@ footer{border-top:1px solid var(--border);text-align:center;padding:2rem;font-si
 <div class="divider"></div>
 
 <!-- PYRAMID -->
-<section id="pyramid-section">
-  <div class="section-label">Chapter 01 — The Structure</div>
-  <h2>THE <em>PYRAMID</em><br>NEVER LIES</h2>
-  <p class="lead">Every MLM runs on the same mathematical structure. More people must join below you than above you — always. This isn't a bug. It's the product. Use the sliders to see the math in real time.</p>
-  <div class="pyramid-container">
-    <div>
-      <div id="pyramid-canvas-wrap"><canvas id="pyramid-canvas"></canvas></div>
-      <div style="margin-top:1rem;">
+<section id="pyramid-section" class="scrolly-section sticky">
+  <div class="sticky-content">
+    <div class="scrolly-visual">
+       <div id="pyramid-canvas-wrap" style="width: 50%; height:80%; border:none; background:transparent;"><canvas id="pyramid-canvas"></canvas></div>
+    </div>
+    <div class="inner" style="position:relative; z-index:10; width:100%; display:flex; align-items:center; height: 100%; pointer-events: none;">
+      <div class="scrolly-text" style="pointer-events: auto;">
+        <div class="section-label">Chapter 01 — The Structure</div>
+        <h2>THE <em>PYRAMID</em><br>NEVER LIES</h2>
+        <p class="lead">Every MLM runs on the same mathematical structure. More people must join below you than above you — always. This isn't a bug. It's the product. Use the sliders to see the math in real time.</p>
+
         <div class="slider-wrap">
-          <label>Recruitment factor — how many each person recruits</label>
+          <label>Recruitment factor</label>
           <input type="range" id="recruit-slider" min="2" max="8" value="5" step="1">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div class="slider-val" id="recruit-val">5 recruits</div>
-            <div style="font-size:0.6rem;color:var(--text-dim);">typical MLM: 3–6</div>
-          </div>
+          <div class="slider-val" id="recruit-val">5 recruits</div>
         </div>
         <div class="slider-wrap" style="margin-top:1rem;">
           <label>Show levels deep</label>
           <input type="range" id="level-slider" min="1" max="12" value="5" step="1">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div class="slider-val" id="level-val">Level 5</div>
-            <div style="font-size:0.6rem;color:var(--gold);" id="level-people-label">3,125 people</div>
-          </div>
+          <div class="slider-val" id="level-val">Level 5</div>
         </div>
       </div>
-    </div>
-    <div class="pyramid-stats">
-      <div class="stat-block"><div class="stat-label">People at YOUR level</div><div class="stat-value gold" id="stat-at-level">3,125</div></div>
-      <div class="stat-block"><div class="stat-label">People BELOW you (your competition)</div><div class="stat-value red" id="stat-below">—</div></div>
-      <div class="stat-block"><div class="stat-label">Total in the entire structure</div><div class="stat-value" id="stat-total">3,906</div></div>
-      <div class="stat-block"><div class="stat-label">% of structure above you, collecting from you</div><div class="stat-value red" id="stat-above-pct">—</div></div>
-      <div class="highlight-box"><strong>The dirty secret:</strong> the deeper your level, the more people beside you sell the SAME products to the SAME friends — while every dollar you spend flows upward through each level above.</div>
+
+      <div class="pyramid-stats">
+        <div class="stat-block"><div class="stat-label">At YOUR level</div><div class="stat-value gold" id="stat-at-level">3,125</div></div>
+        <div class="stat-block"><div class="stat-label">Total in structure</div><div class="stat-value" id="stat-total">3,906</div></div>
+        <div class="highlight-box"><strong>The dirty secret:</strong> In a pyramid of 3,906 people, 3,125 are at the bottom level. That's 80% of participants who have NO downline and are the ones funding the commissions for everyone above.</div>
+      </div>
     </div>
   </div>
 </section>
 <div class="divider"></div>
 
 <!-- WORLD SATURATION -->
-<section id="world-section">
-  <div class="inner">
-    <div class="section-label">Chapter 02 — The Math Breaks Reality</div>
-    <h2>AT LEVEL <em id="saturation-level-display">13</em>,<br>THE WORLD RUNS OUT</h2>
-    <p class="lead">Keep recruiting 5 people per person, level after level. Watch when the structure demands more humans than exist on Earth. This is not a theory. It is arithmetic. And it is why the bottom always collapses.</p>
-    <div id="world-canvas-wrap"><canvas id="world-canvas" height="380"></canvas></div>
-    <div class="world-controls">
-      <button class="btn active" id="btn-animate" onclick="toggleWorldAnim()">▶ Animate Growth</button>
-      <button class="btn" onclick="resetWorld()">↺ Reset</button>
+<section id="world-section" class="scrolly-section sticky">
+  <div class="sticky-content">
+    <div class="scrolly-visual">
+       <div id="world-canvas-wrap" style="width: 50%; height:80%; border:none; background:transparent;"><canvas id="world-canvas"></canvas></div>
     </div>
-    <div class="world-stat-bar">
-      <div class="world-stat"><div class="world-stat-num" id="ws-level">1</div><div class="world-stat-desc">Current Level</div></div>
-      <div class="world-stat"><div class="world-stat-num" id="ws-at">5</div><div class="world-stat-desc">New Recruits At This Level</div></div>
-      <div class="world-stat"><div class="world-stat-num" id="ws-total">6</div><div class="world-stat-desc">Total People In Structure</div></div>
-      <div class="world-stat"><div class="world-stat-num" id="ws-world">0.000%</div><div class="world-stat-desc">Of World Population Consumed</div></div>
+    <div class="inner" style="position:relative; z-index:10; width:100%; display:flex; align-items:center; height: 100%; pointer-events: none;">
+      <div class="scrolly-text" style="pointer-events: auto;">
+        <div class="section-label">Chapter 02 — The Math Breaks Reality</div>
+        <h2>AT LEVEL <em id="saturation-level-display">13</em>,<br>THE WORLD RUNS OUT</h2>
+        <p class="lead">Keep recruiting 5 people per person, level after level. Watch when the structure demands more humans than exist on Earth. This is not a theory. It is arithmetic. And it is why the bottom always collapses.</p>
+        <div class="world-controls">
+          <button class="btn active" id="btn-animate" onclick="toggleWorldAnim()">▶ Animate Growth</button>
+          <button class="btn" onclick="resetWorld()">↺ Reset</button>
+        </div>
+      </div>
+      <div class="world-stat-bar" style="display:flex; flex-direction:column; gap:1rem;">
+        <div class="world-stat"><div class="world-stat-num" id="ws-level">1</div><div class="world-stat-desc">Current Level</div></div>
+        <div class="world-stat"><div class="world-stat-num" id="ws-total">6</div><div class="world-stat-desc">Total People In Structure</div></div>
+        <div class="world-stat"><div class="world-stat-num" id="ws-world">0.000%</div><div class="world-stat-desc">Of World Population</div></div>
+      </div>
     </div>
   </div>
 </section>
@@ -864,6 +958,54 @@ footer{border-top:1px solid var(--border);text-align:center;padding:2rem;font-si
 
 <div class="divider"></div>
 
+<!-- SURVIVOR STORIES -->
+<section id="survivor-section">
+  <div class="inner">
+    <div class="section-label">Chapter 08 — The Human Cost</div>
+    <h2>VOICES FROM<br><em>THE SYSTEM</em></h2>
+    <p class="lead">The math is cold, but the experience is human. These are real stories from people who made it to the "top" and found nothing there, and those who lost everything before they could leave.</p>
+
+    <div class="psych-grid">
+      <div class="psych-card c-red">
+        <div class="psych-head">
+          <div class="psych-icon">📉</div>
+          <div class="psych-title">The "Successful" Whistleblower</div>
+          <div class="psych-sub">Eric Scheibeler, Former Amway "Diamond"</div>
+        </div>
+        <div class="psych-body">
+          <div class="psych-real">"I was at the top. I had the pins, the stage time, the 'freedom.' But I saw the books. I realized my income wasn't coming from product sales—it was coming from the mandatory 'training materials' I was selling to people who were losing their homes. I was a professional exploiter."</div>
+          <div class="twist-label">Key Insight</div>
+          <div class="psych-twist">Even at the highest levels, many MLMs derive more profit from internal "tools" (books, tapes, seminars) than actual products. Success requires knowingly selling a failing system to others.</div>
+        </div>
+      </div>
+
+      <div class="psych-card c-purple">
+        <div class="psych-head">
+          <div class="psych-icon">👗</div>
+          <div class="psych-title">The Identity Trap</div>
+          <div class="psych-sub">Roberta Blevins, LuLaRoe Survivor</div>
+        </div>
+        <div class="psych-body">
+          <div class="psych-real">"It's very culty. You reach up inside the organization for answers. You don't reach outside. When the leggings started arriving moldy and damaged, they told us it was our 'negative mindset' that was causing it. I lost my sense of self before I lost my money."</div>
+          <div class="twist-label">Key Insight</div>
+          <div class="psych-twist">Isolation is a feature, not a bug. By keeping distributors in a "positivity bubble," the company ensures that legitimate complaints are treated as personal moral failings.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight-box">
+      <strong>Verified Data Sources:</strong>
+      <ul style="margin-top: 1rem; list-style: none; font-size: 0.7rem; line-height: 2;">
+        <li>• <strong>FTC Report:</strong> <a href="https://www.ftc.gov/sites/default/files/documents/public_comments/trade-regulation-rule-disclosure-requirements-and-prohibitions-concerning-business-opportunities-ftc.r511993-00010%C2%A0/00010-57283.pdf" target="_blank">The Litany of Misrepresentations</a> (Dr. Jon M. Taylor)</li>
+        <li>• <strong>Consumer Awareness Institute:</strong> <a href="https://www.ftc.gov/sites/default/files/documents/public_comments/business-opportunity-rule-535221-00006/535221-00006.pdf" target="_blank">99% Loss Rate Analysis</a></li>
+        <li>• <strong>Case Study:</strong> Washington State vs. LuLaRoe (Pyramid Scheme Settlement)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
 <!-- RESCUE TOOL -->
 <section id="rescue-section">
   <div class="inner">
@@ -893,6 +1035,8 @@ footer{border-top:1px solid var(--border);text-align:center;padding:2rem;font-si
       <div class="rstep-line" id="rline3"></div>
       <div class="rstep"><div class="rstep-dot" id="rdot4">5</div><div class="rstep-label" id="rlbl4">Your Report</div></div>
     </div>
+
+<div class="pixel-bg"></div>
 
     <!-- STEP 0: THE MLM -->
     <div class="rescue-panel active" id="rpanel0">
@@ -1125,9 +1269,9 @@ function formatBig(n){
   camera.position.z=30;
   const N=80;
   const positions=[],velocities=[],nodes=[];
-  const nodeGeo=new THREE.SphereGeometry(0.18,8,8);
-  const nodeMat=new THREE.MeshBasicMaterial({color:0xff3c3c});
-  const topMat=new THREE.MeshBasicMaterial({color:0xf5c842});
+  const nodeGeo=new THREE.BoxGeometry(0.3,0.3,0.3);
+  const nodeMat=new THREE.MeshBasicMaterial({color:0xff5f1f});
+  const topMat=new THREE.MeshBasicMaterial({color:0xd4af37});
   for(let i=0;i<N;i++){
     const mesh=new THREE.Mesh(nodeGeo,i<3?topMat:nodeMat);
     const x=(Math.random()-0.5)*50,y=(Math.random()-0.5)*30,z=(Math.random()-0.5)*10;
@@ -1167,11 +1311,18 @@ function drawPyramid(){
   const rowH=(H-40)/rows.length;
   const colors=['#f5c842','#ff9900','#ff6600','#ff3c3c','#cc2222','#991111','#660000','#440000','#2a0000','#1a0000','#110000','#090000','#030000'];
   rows.forEach((count,i)=>{
-    const frac=count/maxPeople,barW=Math.max(frac*(W-40),8),x=(W-barW)/2,y=20+i*rowH;
+    const frac=count/maxPeople,barW=Math.max(frac*(W-100),12),x=(W-barW)/2,y=20+i*rowH;
     pyCtx.fillStyle=colors[Math.min(i,colors.length-1)];
-    pyCtx.beginPath();pyCtx.roundRect(x,y,barW,rowH-3,2);pyCtx.fill();
-    pyCtx.fillStyle='#e8e8f0';pyCtx.font=`${Math.min(11,rowH*0.45)}px "Space Mono",monospace`;pyCtx.textAlign='center';pyCtx.textBaseline='middle';
-    if(barW>50)pyCtx.fillText(i===0?'L0: YOU (Founder)':'L'+i+': '+formatBig(count),W/2,y+rowH/2-1.5);
+    // Technical wireframe look
+    pyCtx.strokeStyle = pyCtx.fillStyle;
+    pyCtx.lineWidth = 1;
+    pyCtx.strokeRect(x,y,barW,rowH-4);
+    pyCtx.globalAlpha = 0.2;
+    pyCtx.fillRect(x,y,barW,rowH-4);
+    pyCtx.globalAlpha = 1.0;
+
+    pyCtx.fillStyle='var(--text)';pyCtx.font=`${Math.min(10,rowH*0.4)}px "Space Mono",monospace`;pyCtx.textAlign='center';pyCtx.textBaseline='middle';
+    if(barW>80)pyCtx.fillText(i===0?'[LVL_00] FOUNDER':'[LVL_'+(i<10?'0':'')+i+'] '+formatBig(count),W/2,y+rowH/2-1.5);
   });
   const atLevel=rows[levels];let below=0;for(let l=levels+1;l<=levels+3;l++)below+=Math.pow(factor,l);
   let total=0;for(let l=0;l<=levels;l++)total+=rows[l];
@@ -1207,8 +1358,16 @@ function drawWorld(upToLevel){
   const drawTo=Math.min(upToLevel,MAX_LEVELS),barW=cW/MAX_LEVELS-4;
   for(let i=0;i<drawTo;i++){
     const d=wData[i],logFrac=Math.log10(Math.max(d.total,1))/Math.log10(WORLD_POP),barH=logFrac*cH,x=pad.l+i*(cW/MAX_LEVELS)+2,y=pad.t+cH-barH;
-    worldCtx.fillStyle=d.total>=WORLD_POP?'#ff3c3c':`hsl(${200-i*12},80%,55%)`;worldCtx.fillRect(x,y,barW,barH);
-    worldCtx.fillStyle='#888899';worldCtx.font='8px "Space Mono"';worldCtx.textAlign='center';worldCtx.fillText(d.level,x+barW/2,pad.t+cH+14);
+    const isFull = d.total>=WORLD_POP;
+    worldCtx.fillStyle=isFull?'var(--accent)':`hsl(${200-i*12},30%,50%)`;
+    // Technical style
+    worldCtx.strokeStyle = worldCtx.fillStyle;
+    worldCtx.strokeRect(x,y,barW,barH);
+    worldCtx.globalAlpha = 0.3;
+    worldCtx.fillRect(x,y,barW,barH);
+    worldCtx.globalAlpha = 1.0;
+
+    worldCtx.fillStyle='var(--text-dim)';worldCtx.font='7px "Space Mono"';worldCtx.textAlign='center';worldCtx.fillText(d.level,x+barW/2,pad.t+cH+14);
   }
   worldCtx.fillStyle='#888899';worldCtx.font='9px "Space Mono"';worldCtx.textAlign='center';worldCtx.fillText('Recruitment Level',pad.l+cW/2,H-8);
   if(upToLevel>0){const d=wData[Math.min(upToLevel,MAX_LEVELS)-1];document.getElementById('ws-level').textContent=d.level;document.getElementById('ws-at').textContent=formatBig(d.atLevel);document.getElementById('ws-total').textContent=formatBig(d.total);const pct=Math.min(d.total/WORLD_POP*100,100);document.getElementById('ws-world').textContent=pct>=100?'100%+ 💀':pct.toFixed(pct<0.01?4:2)+'%';}
@@ -1940,6 +2099,21 @@ function restartRescue(){
 
 // Pre-seed with a sample product row
 addProduct('Monthly product minimum', 150, 40);
+
+// ═══════════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════════
+const themeToggle = document.getElementById('theme-toggle');
+themeToggle.addEventListener('click', () => {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+});
+
+if (localStorage.getItem('theme') === 'dark') {
+  document.documentElement.setAttribute('data-theme', 'dark');
+}
 
 </script>
 </body>
