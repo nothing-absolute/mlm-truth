@@ -1103,7 +1103,7 @@ footer{border-top:1px solid var(--border);text-align:center;padding:2rem;font-si
 
 <script>
 // ═══════════════════════════════════════════
-// UTILS
+// SHARED UTILITIES
 // ═══════════════════════════════════════════
 function formatBig(n){
   if(n>=1e12)return(n/1e12).toFixed(1)+'T';
@@ -1112,6 +1112,68 @@ function formatBig(n){
   if(n>=1e3)return(n/1e3).toFixed(1)+'K';
   return Math.round(n).toString();
 }
+
+// Future value of a monthly annuity (compound interest)
+function futureValue(monthly, months, annualRate){
+  if(!monthly||!months)return 0;
+  const mr=annualRate/12;
+  return Math.round(monthly*((Math.pow(1+mr,months)-1)/mr));
+}
+
+// Fit a canvas to its container and return its 2d context
+function fitCanvas(canvas, height){
+  canvas.width=canvas.offsetWidth;
+  if(height!=null)canvas.height=height;
+  return canvas.getContext('2d');
+}
+
+// Draw horizontal grid lines with left-axis labels on a chart area
+function drawChartGrid(ctx, pad, cW, cH, ticks, opts){
+  ctx.strokeStyle=opts.lineColor||'#2a2a40';
+  ctx.lineWidth=1;
+  ctx.fillStyle=opts.labelColor||'#555570';
+  ctx.font=opts.font||'9px "Space Mono"';
+  ctx.textAlign='right';
+  ticks.forEach(function(tick){
+    var y=pad.t+cH*(1-tick.frac);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cW,y);ctx.stroke();
+    ctx.fillText(tick.label,pad.l-(tick.labelOffset||6),y+4);
+  });
+}
+
+// Word-wrap text for canvas rendering; returns array of lines
+function wrapText(ctx, text, maxWidth){
+  var words=text.split(' '),line='',lines=[];
+  words.forEach(function(w){
+    var test=line+w+' ';
+    if(ctx.measureText(test).width>maxWidth&&line){
+      lines.push(line.trim());line=w+' ';
+    }else line=test;
+  });
+  lines.push(line.trim());
+  return lines;
+}
+
+// Run a callback once when an element scrolls into view
+function onVisible(el, callback, threshold){
+  var obs=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){callback();obs.disconnect();}
+    });
+  },{threshold:threshold||0.2});
+  obs.observe(el);
+}
+
+// Centralized resize handler — all canvas redraw functions register here
+var _resizeCallbacks=[];
+function onResize(fn,debounceMs){
+  _resizeCallbacks.push({fn:fn,ms:debounceMs||0});
+}
+window.addEventListener('resize',function(){
+  _resizeCallbacks.forEach(function(cb){
+    if(cb.ms)setTimeout(cb.fn,cb.ms);else cb.fn();
+  });
+});
 
 // ═══════════════════════════════════════════
 // HERO — Three.js particle network
@@ -1155,23 +1217,21 @@ function formatBig(n){
 // PYRAMID
 // ═══════════════════════════════════════════
 const pyCanvas=document.getElementById('pyramid-canvas');
-const pyCtx=pyCanvas.getContext('2d');
 const recruitSlider=document.getElementById('recruit-slider');
 const levelSlider=document.getElementById('level-slider');
 function drawPyramid(){
   const factor=parseInt(recruitSlider.value),levels=parseInt(levelSlider.value);
   const rows=[];for(let l=0;l<=levels;l++)rows.push(Math.pow(factor,l));
   const maxPeople=rows[rows.length-1];
-  const W=pyCanvas.width=pyCanvas.offsetWidth,H=pyCanvas.height=pyCanvas.offsetHeight;
-  pyCtx.clearRect(0,0,W,H);
+  const ctx=fitCanvas(pyCanvas);const W=pyCanvas.width,H=pyCanvas.height;
   const rowH=(H-40)/rows.length;
   const colors=['#f5c842','#ff9900','#ff6600','#ff3c3c','#cc2222','#991111','#660000','#440000','#2a0000','#1a0000','#110000','#090000','#030000'];
   rows.forEach((count,i)=>{
     const frac=count/maxPeople,barW=Math.max(frac*(W-40),8),x=(W-barW)/2,y=20+i*rowH;
-    pyCtx.fillStyle=colors[Math.min(i,colors.length-1)];
-    pyCtx.beginPath();pyCtx.roundRect(x,y,barW,rowH-3,2);pyCtx.fill();
-    pyCtx.fillStyle='#e8e8f0';pyCtx.font=`${Math.min(11,rowH*0.45)}px "Space Mono",monospace`;pyCtx.textAlign='center';pyCtx.textBaseline='middle';
-    if(barW>50)pyCtx.fillText(i===0?'L0: YOU (Founder)':'L'+i+': '+formatBig(count),W/2,y+rowH/2-1.5);
+    ctx.fillStyle=colors[Math.min(i,colors.length-1)];
+    ctx.beginPath();ctx.roundRect(x,y,barW,rowH-3,2);ctx.fill();
+    ctx.fillStyle='#e8e8f0';ctx.font=`${Math.min(11,rowH*0.45)}px "Space Mono",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
+    if(barW>50)ctx.fillText(i===0?'L0: YOU (Founder)':'L'+i+': '+formatBig(count),W/2,y+rowH/2-1.5);
   });
   const atLevel=rows[levels];let below=0;for(let l=levels+1;l<=levels+3;l++)below+=Math.pow(factor,l);
   let total=0;for(let l=0;l<=levels;l++)total+=rows[l];
@@ -1185,68 +1245,64 @@ function drawPyramid(){
   document.getElementById('stat-above-pct').textContent=abovePct+'%';
 }
 recruitSlider.oninput=drawPyramid;levelSlider.oninput=drawPyramid;
-window.addEventListener('resize',()=>setTimeout(drawPyramid,50));drawPyramid();
+onResize(drawPyramid,50);drawPyramid();
 
 // ═══════════════════════════════════════════
 // WORLD SATURATION
 // ═══════════════════════════════════════════
 const worldCanvas=document.getElementById('world-canvas');
-const worldCtx=worldCanvas.getContext('2d');
 const WORLD_POP=8_000_000_000,RECRUIT_FACTOR=5,MAX_LEVELS=20;
 const wData=(()=>{const d=[];let t=1;for(let l=1;l<=MAX_LEVELS;l++){const a=Math.pow(RECRUIT_FACTOR,l);t+=a;d.push({level:l,atLevel:a,total:t});}return d;})();
 let worldAnimFrame=null,currentLevel=0,worldAnimating=false;
 const satLv=(()=>{for(let i=0;i<wData.length;i++)if(wData[i].total>=WORLD_POP)return i+1;return MAX_LEVELS;})();
 document.getElementById('saturation-level-display').textContent=satLv;
 function drawWorld(upToLevel){
-  const W=worldCanvas.width=worldCanvas.offsetWidth,H=380;worldCanvas.height=H;worldCtx.clearRect(0,0,W,H);
+  const ctx=fitCanvas(worldCanvas,380),W=worldCanvas.width,H=worldCanvas.height;
   const pad={l:60,r:20,t:30,b:50},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
-  worldCtx.strokeStyle='#2a2a40';worldCtx.lineWidth=1;
-  [1e3,1e6,1e9].forEach(v=>{const y=pad.t+cH-(Math.log10(v)/Math.log10(WORLD_POP))*cH;worldCtx.beginPath();worldCtx.moveTo(pad.l,y);worldCtx.lineTo(pad.l+cW,y);worldCtx.stroke();worldCtx.fillStyle='#555570';worldCtx.font='9px "Space Mono"';worldCtx.textAlign='right';worldCtx.fillText(formatBig(v),pad.l-6,y+4);});
-  const wy=pad.t;worldCtx.strokeStyle='#ff3c3c55';worldCtx.setLineDash([6,4]);worldCtx.lineWidth=1.5;worldCtx.beginPath();worldCtx.moveTo(pad.l,wy);worldCtx.lineTo(pad.l+cW,wy);worldCtx.stroke();worldCtx.setLineDash([]);
-  worldCtx.fillStyle='#ff3c3c';worldCtx.font='bold 10px "Space Mono"';worldCtx.textAlign='left';worldCtx.fillText('🌍 World Population (8B)',pad.l+4,wy-6);
+  drawChartGrid(ctx,pad,cW,cH,[1e3,1e6,1e9].map(v=>({frac:Math.log10(v)/Math.log10(WORLD_POP),label:formatBig(v)})),{});
+  const wy=pad.t;ctx.strokeStyle='#ff3c3c55';ctx.setLineDash([6,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(pad.l,wy);ctx.lineTo(pad.l+cW,wy);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#ff3c3c';ctx.font='bold 10px "Space Mono"';ctx.textAlign='left';ctx.fillText('🌍 World Population (8B)',pad.l+4,wy-6);
   const drawTo=Math.min(upToLevel,MAX_LEVELS),barW=cW/MAX_LEVELS-4;
   for(let i=0;i<drawTo;i++){
     const d=wData[i],logFrac=Math.log10(Math.max(d.total,1))/Math.log10(WORLD_POP),barH=logFrac*cH,x=pad.l+i*(cW/MAX_LEVELS)+2,y=pad.t+cH-barH;
-    worldCtx.fillStyle=d.total>=WORLD_POP?'#ff3c3c':`hsl(${200-i*12},80%,55%)`;worldCtx.fillRect(x,y,barW,barH);
-    worldCtx.fillStyle='#888899';worldCtx.font='8px "Space Mono"';worldCtx.textAlign='center';worldCtx.fillText(d.level,x+barW/2,pad.t+cH+14);
+    ctx.fillStyle=d.total>=WORLD_POP?'#ff3c3c':`hsl(${200-i*12},80%,55%)`;ctx.fillRect(x,y,barW,barH);
+    ctx.fillStyle='#888899';ctx.font='8px "Space Mono"';ctx.textAlign='center';ctx.fillText(d.level,x+barW/2,pad.t+cH+14);
   }
-  worldCtx.fillStyle='#888899';worldCtx.font='9px "Space Mono"';worldCtx.textAlign='center';worldCtx.fillText('Recruitment Level',pad.l+cW/2,H-8);
+  ctx.fillStyle='#888899';ctx.font='9px "Space Mono"';ctx.textAlign='center';ctx.fillText('Recruitment Level',pad.l+cW/2,H-8);
   if(upToLevel>0){const d=wData[Math.min(upToLevel,MAX_LEVELS)-1];document.getElementById('ws-level').textContent=d.level;document.getElementById('ws-at').textContent=formatBig(d.atLevel);document.getElementById('ws-total').textContent=formatBig(d.total);const pct=Math.min(d.total/WORLD_POP*100,100);document.getElementById('ws-world').textContent=pct>=100?'100%+ 💀':pct.toFixed(pct<0.01?4:2)+'%';}
 }
 function animateWorld(){if(!worldAnimating)return;if(currentLevel>=MAX_LEVELS){worldAnimating=false;const b=document.getElementById('btn-animate');b.textContent='▶ Replay';b.classList.remove('active');return;}currentLevel++;drawWorld(currentLevel);worldAnimFrame=setTimeout(animateWorld,currentLevel<satLv?260:100);}
 function toggleWorldAnim(){if(currentLevel>=MAX_LEVELS)currentLevel=0;worldAnimating=!worldAnimating;const b=document.getElementById('btn-animate');if(worldAnimating){b.textContent='⏸ Pause';b.classList.add('active');animateWorld();}else{b.textContent='▶ Resume';clearTimeout(worldAnimFrame);}}
 function resetWorld(){clearTimeout(worldAnimFrame);currentLevel=0;worldAnimating=false;const b=document.getElementById('btn-animate');b.textContent='▶ Animate Growth';b.classList.add('active');drawWorld(0);}
-window.addEventListener('resize',()=>drawWorld(currentLevel));drawWorld(0);
+onResize(function(){drawWorld(currentLevel);});drawWorld(0);
 
 // ═══════════════════════════════════════════
 // INVESTMENT CALC
 // ═══════════════════════════════════════════
 const investCanvas=document.getElementById('invest-canvas');
-const investCtx=investCanvas.getContext('2d');
 const iMonthly=document.getElementById('invest-monthly'),iYears=document.getElementById('invest-years');
-function calcInvestment(monthly,years,rate=0.07){const months=years*12,mr=rate/12,fv=monthly*((Math.pow(1+mr,months)-1)/mr),spent=monthly*months;return{fv:Math.round(fv),spent,diff:Math.round(fv-spent)};}
+function calcInvestment(monthly,years,rate=0.07){const months=years*12,fv=futureValue(monthly,months,rate),spent=monthly*months;return{fv,spent,diff:fv-spent};}
 function drawInvestment(){
   const monthly=parseInt(iMonthly.value),years=parseInt(iYears.value);
   document.getElementById('invest-monthly-val').textContent='$'+monthly+' / month';
   document.getElementById('invest-years-val').textContent=years+' year'+(years>1?'s':'');
-  const W=investCanvas.width=investCanvas.offsetWidth,H=260;investCanvas.height=H;investCtx.clearRect(0,0,W,H);
+  const ctx=fitCanvas(investCanvas,260),W=investCanvas.width,H=investCanvas.height;
   const pad={l:60,r:20,t:20,b:40},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
   const spentData=[],investData=[];const maxY_ref=calcInvestment(monthly,years).fv;
   for(let y=0;y<=years;y++){spentData.push(monthly*12*y);investData.push(calcInvestment(monthly,y).fv);}
   const maxVal=Math.max(maxY_ref,monthly*12*years);
-  investCtx.strokeStyle='#2a2a40';investCtx.lineWidth=1;
-  for(let i=0;i<=4;i++){const y=pad.t+(i/4)*cH;investCtx.beginPath();investCtx.moveTo(pad.l,y);investCtx.lineTo(pad.l+cW,y);investCtx.stroke();investCtx.fillStyle='#555570';investCtx.font='8px "Space Mono"';investCtx.textAlign='right';investCtx.fillText('$'+formatBig(maxVal*(1-i/4)),pad.l-4,y+4);}
-  function drawLine(data,color,fill){investCtx.beginPath();data.forEach((v,i)=>{const x=pad.l+(i/years)*cW,y=pad.t+cH-(v/maxVal)*cH;i===0?investCtx.moveTo(x,y):investCtx.lineTo(x,y);});if(fill){investCtx.lineTo(pad.l+cW,pad.t+cH);investCtx.lineTo(pad.l,pad.t+cH);investCtx.closePath();investCtx.fillStyle=fill;investCtx.fill();}investCtx.strokeStyle=color;investCtx.lineWidth=2.5;investCtx.stroke();}
+  drawChartGrid(ctx,pad,cW,cH,[0,1,2,3,4].map(i=>({frac:1-i/4,label:'$'+formatBig(maxVal*(1-i/4))})),{font:'8px "Space Mono"'});
+  function drawLine(data,color,fill){ctx.beginPath();data.forEach((v,i)=>{const x=pad.l+(i/years)*cW,y=pad.t+cH-(v/maxVal)*cH;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});if(fill){ctx.lineTo(pad.l+cW,pad.t+cH);ctx.lineTo(pad.l,pad.t+cH);ctx.closePath();ctx.fillStyle=fill;ctx.fill();}ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.stroke();}
   drawLine(spentData,'#ff3c3c','rgba(255,60,60,0.08)');drawLine(investData,'#2ecc71','rgba(46,204,113,0.12)');
-  investCtx.fillStyle='#555570';investCtx.font='8px "Space Mono"';investCtx.textAlign='center';[0,Math.floor(years/2),years].forEach(y=>investCtx.fillText('Yr '+y,pad.l+(y/years)*cW,H-10));
-  [[0,'#ff3c3c','Spent on MLM'],[1,'#2ecc71','If Invested (7%)']].forEach(([i,col,lbl])=>{const lx=pad.l+i*140;investCtx.fillStyle=col;investCtx.fillRect(lx,8,14,4);investCtx.fillStyle='#888899';investCtx.font='8px "Space Mono"';investCtx.textAlign='left';investCtx.fillText(lbl,lx+18,14);});
+  ctx.fillStyle='#555570';ctx.font='8px "Space Mono"';ctx.textAlign='center';[0,Math.floor(years/2),years].forEach(y=>ctx.fillText('Yr '+y,pad.l+(y/years)*cW,H-10));
+  [[0,'#ff3c3c','Spent on MLM'],[1,'#2ecc71','If Invested (7%)']].forEach(([i,col,lbl])=>{const lx=pad.l+i*140;ctx.fillStyle=col;ctx.fillRect(lx,8,14,4);ctx.fillStyle='#888899';ctx.font='8px "Space Mono"';ctx.textAlign='left';ctx.fillText(lbl,lx+18,14);});
   const res=calcInvestment(monthly,years);
   document.getElementById('is-spent').textContent='$'+formatBig(res.spent);
   document.getElementById('is-invested').textContent='$'+formatBig(res.fv);
   document.getElementById('is-diff').textContent='+$'+formatBig(res.diff);
 }
 iMonthly.oninput=drawInvestment;iYears.oninput=drawInvestment;
-window.addEventListener('resize',()=>setTimeout(drawInvestment,50));drawInvestment();
+onResize(drawInvestment,50);drawInvestment();
 
 // ═══════════════════════════════════════════
 // INCOME BARS
@@ -1262,14 +1318,13 @@ const incomeData=[
 ];
 const barsEl=document.getElementById('income-bars');
 incomeData.forEach(d=>{const row=document.createElement('div');row.className='income-row';row.innerHTML='<div class="income-level">'+d.level+'</div><div class="income-bar-track"><div class="income-bar-fill" data-width="'+d.pct+'" style="width:0%;background:'+d.color+';">'+d.avg+'</div></div><div class="income-pct">'+d.pct+'%</div>';barsEl.appendChild(row);});
-new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('.income-bar-fill').forEach((el,i)=>setTimeout(()=>el.style.width=Math.max(parseFloat(el.dataset.width),2)+'%',i*120));}});},{threshold:0.2}).observe(barsEl);
+onVisible(barsEl,function(){document.querySelectorAll('.income-bar-fill').forEach((el,i)=>setTimeout(()=>el.style.width=Math.max(parseFloat(el.dataset.width),2)+'%',i*120));});
 
 // ═══════════════════════════════════════════
 // BLAME LOOP CANVAS
 // ═══════════════════════════════════════════
 (function(){
   const bc=document.getElementById('blame-canvas');
-  const ctx=bc.getContext('2d');
   const steps=[
     {label:'YOU JOIN',detail:'Excited. Dream is real.',color:'#f5c842',angle:0},
     {label:'BUY IN',detail:'Starter kit + inventory.',color:'#f5a623',angle:Math.PI*2/6},
@@ -1279,8 +1334,9 @@ new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){do
     {label:'"YOUR FAULT"',detail:'Not enough grind. Bad mindset.',color:'#ff3c3c',angle:Math.PI*10/6},
   ];
   let t=0,hovIdx=-1;
-  function resize(){bc.width=bc.offsetWidth;bc.height=340;}
+  function resize(){fitCanvas(bc,340);}
   function draw(){
+    const ctx=bc.getContext('2d');
     const W=bc.width,H=bc.height;ctx.clearRect(0,0,W,H);
     const cx=W/2,cy=H/2,R=Math.min(W,H)*0.32;
     t+=0.008;
@@ -1332,7 +1388,7 @@ new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){do
     steps.forEach((s,i)=>{const ang=s.angle+t,x=cx+Math.cos(ang)*R,y=cy+Math.sin(ang)*R;const d=Math.sqrt((mx-x)**2+(my-y)**2);if(d<40)hovIdx=i;});
   });
   bc.addEventListener('mouseleave',()=>hovIdx=-1);
-  window.addEventListener('resize',()=>{resize();});
+  onResize(resize);
   resize();draw();
 })();
 
@@ -1341,7 +1397,6 @@ new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){do
 // ═══════════════════════════════════════════
 (function(){
   const fc=document.getElementById('funnel-canvas');
-  const ctx=fc.getContext('2d');
   const stages=[
     {label:'THE PITCH',sub:'Financial freedom awaits!',detail:'Aspirational language + fake urgency + cherry-picked testimonials from the top 0.01%. Real psychology: social proof, FOMO, and manufactured scarcity.',color:'#9b59b6',emoji:'✨'},
     {label:'THE BUY-IN',sub:'Starter kit + first inventory',detail:'$500–$2,000 upfront. Now you\'re an "entrepreneur." Identity shifts immediately. Sunk cost begins. You\'ve got skin in the game.',color:'#f5c842',emoji:'💸'},
@@ -1352,8 +1407,9 @@ new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){do
     {label:'THE QUICKSAND',sub:'Debt + identity + isolation',detail:'You\'ve spent thousands. Your friends are your downline. Your community is the business. Quitting means losing your income, your identity, AND your social circle. The trap is complete.',color:'#7b0000',emoji:'⛓️'},
   ];
   let hovered=-1;
-  function resize(){fc.width=fc.offsetWidth;fc.height=460;}
+  function resize(){fitCanvas(fc,460);}
   function draw(){
+    const ctx=fc.getContext('2d');
     const W=fc.width,H=fc.height;ctx.clearRect(0,0,W,H);
     const totalH=H-40,stageH=totalH/stages.length;
     stages.forEach((s,i)=>{
@@ -1374,15 +1430,15 @@ new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){do
         ctx.beginPath();ctx.roundRect(dx,dy,dw,dh,4);ctx.fill();
         ctx.strokeStyle=s.color;ctx.lineWidth=1;ctx.stroke();
         ctx.fillStyle='#e8e8f0';ctx.font='9px "Space Mono",monospace';ctx.textAlign='center';
-        const words=s.detail.split(' ');let line='',lines=[],ty=dy+12;
-        words.forEach(w=>{const test=line+w+' ';if(ctx.measureText(test).width>dw-20&&line){lines.push(line.trim());line=w+' ';}else line=test;});lines.push(line.trim());
+        const lines=wrapText(ctx,s.detail,dw-20);
+        const ty=dy+12;
         lines.slice(0,3).forEach((l,li)=>ctx.fillText(l,W/2,ty+li*15));
       }
     });
   }
   fc.addEventListener('mousemove',e=>{const r=fc.getBoundingClientRect(),y=e.clientY-r.top-20,stageH=(fc.height-40)/stages.length;hovered=Math.min(Math.max(Math.floor(y/stageH),0),stages.length-1);draw();});
   fc.addEventListener('mouseleave',()=>{hovered=-1;draw();});
-  window.addEventListener('resize',()=>{resize();draw();});
+  onResize(function(){resize();draw();});
   resize();draw();
 })();
 
@@ -1498,7 +1554,7 @@ renderQuiz();
 // ═══════════════════════════════════════════
 const sClose=document.getElementById('s-close'),sAcquaint=document.getElementById('s-acquaint');
 const sMonths=document.getElementById('s-months'),sMsgs=document.getElementById('s-msgs');
-const socialCanvas=document.getElementById('social-canvas'),socialCtx=socialCanvas.getContext('2d');
+const socialCanvas=document.getElementById('social-canvas');
 function calcSocial(){
   const close=parseInt(sClose.value),acquaint=parseInt(sAcquaint.value);
   const months=parseInt(sMonths.value),msgs=parseInt(sMsgs.value);
@@ -1528,7 +1584,7 @@ function calcSocial(){
   drawRelGrid(close,acquaint,closePitched,lostClose);
 }
 function drawSocialChart(close,acquaint,closePitched,acquaintPitched,lostClose){
-  const W=socialCanvas.width=socialCanvas.offsetWidth,H=300;socialCanvas.height=H;socialCtx.clearRect(0,0,W,H);
+  const ctx=fitCanvas(socialCanvas,300),W=socialCanvas.width,H=socialCanvas.height;
   const data=[
     {label:'Close\n(safe)',val:close-closePitched,color:'#2ecc71'},
     {label:'Close\n(strained)',val:closePitched-lostClose,color:'#f5c842'},
@@ -1542,11 +1598,11 @@ function drawSocialChart(close,acquaint,closePitched,acquaintPitched,lostClose){
   let ang=-Math.PI/2;
   data.forEach(d=>{
     const slice=(d.val/tot)*Math.PI*2;
-    socialCtx.beginPath();socialCtx.moveTo(cx,cy);socialCtx.arc(cx,cy,r,ang,ang+slice);socialCtx.closePath();
-    socialCtx.fillStyle=d.color+'cc';socialCtx.fill();socialCtx.strokeStyle=d.color;socialCtx.lineWidth=2;socialCtx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,ang,ang+slice);ctx.closePath();
+    ctx.fillStyle=d.color+'cc';ctx.fill();ctx.strokeStyle=d.color;ctx.lineWidth=2;ctx.stroke();
     const mid=ang+slice/2,lx=cx+Math.cos(mid)*(r+26),ly=cy+Math.sin(mid)*(r+26);
-    socialCtx.fillStyle='#888899';socialCtx.font='8px "Space Mono"';socialCtx.textAlign=lx>cx?'left':'right';socialCtx.textBaseline='middle';
-    d.label.split('\n').forEach((l,i)=>socialCtx.fillText(l,lx,ly+i*10-5));
+    ctx.fillStyle='#888899';ctx.font='8px "Space Mono"';ctx.textAlign=lx>cx?'left':'right';ctx.textBaseline='middle';
+    d.label.split('\n').forEach((l,i)=>ctx.fillText(l,lx,ly+i*10-5));
     ang+=slice;
   });
 }
@@ -1571,7 +1627,7 @@ function drawRelGrid(close,acquaint,closePitched,lostClose){
   }
 }
 sClose.oninput=sAcquaint.oninput=sMonths.oninput=sMsgs.oninput=calcSocial;
-window.addEventListener('resize',()=>setTimeout(calcSocial,50));calcSocial();
+onResize(calcSocial,50);calcSocial();
 
 // ═══════════════════════════════════════════
 // AI MULTIPLIER BAR ANIMATION
@@ -1579,20 +1635,14 @@ window.addEventListener('resize',()=>setTimeout(calcSocial,50));calcSocial();
 (function(){
   const bar = document.getElementById('ai-mult-bar');
   if(!bar) return;
-  const obs = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if(e.isIntersecting){
-        document.querySelectorAll('.ai-mult-ai').forEach((el, i) => {
-          setTimeout(() => {
-            el.style.opacity = '1';
-            el.style.width = el.dataset.w;
-          }, i * 200);
-        });
-        obs.disconnect();
-      }
+  onVisible(bar, function(){
+    document.querySelectorAll('.ai-mult-ai').forEach((el, i) => {
+      setTimeout(() => {
+        el.style.opacity = '1';
+        el.style.width = el.dataset.w;
+      }, i * 200);
     });
-  }, {threshold: 0.3});
-  obs.observe(bar);
+  }, 0.3);
 })();
 
 // ═══════════════════════════════════════════
@@ -1730,7 +1780,7 @@ function generateReport(){
   const mInfo = mlmData[mlmName] || {medianIncome:200, netLossPct:82};
   const grossIncome = Math.round(mInfo.medianIncome * (months/12) * levelMultiplier[selectedLevel]);
   const netLoss = Math.max(totalSpent - grossIncome, 0);
-  const investedVal = Math.round(totalMonthly * ((Math.pow(1+0.07/12, months)-1)/(0.07/12)));
+  const investedVal = futureValue(totalMonthly, months, 0.07);
 
   // TIME
   const totalHours = Math.round(hrsWeek * (months * 4.33));
@@ -1875,7 +1925,7 @@ function generateReport(){
         <div class="wn-num">4</div>
         <div>
           <div class="wn-content-title">Put That Monthly Cost to Work — For Real</div>
-          <div class="wn-content-body">The $${Math.round(totalMonthly)}/month you were spending? Start there. A high-yield savings account earns 4–5% with zero risk. An index fund (VOO, FZROX) earns ~10%/yr long-term with no meetings, no team, no pitch. $${Math.round(totalMonthly)}/month for ${months} more months = <strong>$${Math.round(totalMonthly*((Math.pow(1.07/12+1,months)-1)/(0.07/12))).toLocaleString()} at 7% return</strong>.</div>
+          <div class="wn-content-body">The $${Math.round(totalMonthly)}/month you were spending? Start there. A high-yield savings account earns 4–5% with zero risk. An index fund (VOO, FZROX) earns ~10%/yr long-term with no meetings, no team, no pitch. $${Math.round(totalMonthly)}/month for ${months} more months = <strong>$${futureValue(totalMonthly, months, 0.07).toLocaleString()} at 7% return</strong>.</div>
         </div>
       </div>
       ${dream ? `<div class="wn-step">
