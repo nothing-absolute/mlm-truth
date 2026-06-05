@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The MLM Machine — Follow The Money</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 :root {
@@ -1105,6 +1105,9 @@ footer{border-top:1px solid var(--border);text-align:center;padding:2rem;font-si
 // ═══════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════
+function escapeHtml(str){
+  const d=document.createElement('div');d.appendChild(document.createTextNode(str));return d.innerHTML;
+}
 function formatBig(n){
   if(n>=1e12)return(n/1e12).toFixed(1)+'T';
   if(n>=1e9)return(n/1e9).toFixed(1)+'B';
@@ -1562,7 +1565,7 @@ function drawRelGrid(close,acquaint,closePitched,lostClose){
     const em=isClose?closeEmojis[i%closeEmojis.length]:acqEmojis[(i-close)%acqEmojis.length];
     const div=document.createElement('div');
     div.className='rel-dot';
-    div.title=isLost?'Lost relationship':'isPitched'?'Pitched — strained':'Not pitched';
+    div.title=isLost?'Lost relationship':isPitched?'Pitched — strained':'Not pitched';
     div.style.background=isLost?'rgba(255,60,60,0.08)':isPitched?'rgba(245,200,66,0.15)':'rgba(255,255,255,0.03)';
     div.style.borderColor=isLost?'var(--accent)':isPitched&&!isLost?'var(--gold)':isPitched?'var(--green)':'transparent';
     div.style.opacity=isLost?'0.35':'1';
@@ -1642,9 +1645,9 @@ function addProduct(name='', mlmPrice='', retailEst=''){
   div.className = 'product-row';
   div.id = 'pr-'+id;
   div.innerHTML = `
-    <input type="text" placeholder="Product / cost name" value="${name}" id="pname${id}">
-    <input type="number" placeholder="$/mo" min="0" value="${mlmPrice}" id="pprice${id}">
-    <input type="number" placeholder="retail $" min="0" value="${retailEst}" id="pretail${id}">
+    <input type="text" placeholder="Product / cost name" value="${escapeHtml(String(name))}" id="pname${id}">
+    <input type="number" placeholder="$/mo" min="0" value="${escapeHtml(String(mlmPrice))}" id="pprice${id}">
+    <input type="number" placeholder="retail $" min="0" value="${escapeHtml(String(retailEst))}" id="pretail${id}">
     <button class="del-btn" onclick="removeProduct('pr-${id}')">✕</button>`;
   document.getElementById('product-list').appendChild(div);
   productRows.push(id);
@@ -1697,7 +1700,7 @@ function rescueNext(from){
 function rescueBack(from){ setRescueStep(from-1); }
 
 function generateReport(){
-  const mlmName  = window._rescueMlm || 'Your MLM';
+  const mlmName  = escapeHtml(window._rescueMlm || 'Your MLM');
   const who      = document.getElementById('r-who').value;
   const months   = parseInt(document.getElementById('r-months').value) || 18;
   const hrsWeek  = parseInt(document.getElementById('r-hrs-week').value) || 15;
@@ -1706,10 +1709,10 @@ function generateReport(){
   const training = parseFloat(document.getElementById('r-training').value) || 0;
   const closeP   = parseInt(document.getElementById('r-close-pitched').value) || 0;
   const damaged  = parseInt(document.getElementById('r-damaged').value) || 0;
-  const dream    = document.getElementById('r-dream').value.trim();
+  const dream    = escapeHtml(document.getElementById('r-dream').value.trim());
   const lost     = document.getElementById('r-lost').value;
   const feeling  = document.getElementById('r-feeling').value;
-  const name     = document.getElementById('r-name').value.trim() || (who==='me' ? 'Friend' : 'Your loved one');
+  const name     = escapeHtml(document.getElementById('r-name').value.trim() || (who==='me' ? 'Friend' : 'Your loved one'));
 
   // Collect products
   let monthlyMlm = 0, monthlyRetail = 0;
@@ -1854,7 +1857,7 @@ function generateReport(){
         <div class="wn-num">1</div>
         <div>
           <div class="wn-content-title">Take Inventory of What's Recoverable</div>
-          <div class="wn-content-body">Many MLM contracts allow returns of unsold inventory within a window (often 12 months from purchase, 70–90% buyback legally required in most US states). Check your company's policies. Document everything you have. <a href="https://www.ftc.gov/tips-advice/business-center/guidance/multilevel-marketing" target="_blank">The FTC has guidance on MLM return rights.</a></div>
+          <div class="wn-content-body">Many MLM contracts allow returns of unsold inventory within a window (often 12 months from purchase, 70–90% buyback legally required in most US states). Check your company's policies. Document everything you have. <a href="https://www.ftc.gov/tips-advice/business-center/guidance/multilevel-marketing" target="_blank" rel="noopener noreferrer">The FTC has guidance on MLM return rights.</a></div>
         </div>
       </div>
       <div class="wn-step">
@@ -1891,10 +1894,10 @@ function generateReport(){
           <div class="wn-content-title">If You Need to Talk to Someone</div>
           <div class="wn-content-body">
             MLM recovery is real and there are communities of people who understand exactly what you've been through. No judgment.<br><br>
-            • <a href="https://www.reddit.com/r/antiMLM/" target="_blank">r/antiMLM</a> — community of survivors and researchers<br>
-            • <a href="https://www.bbb.org/article/news-releases/23068-is-it-a-pyramid-scheme" target="_blank">BBB Pyramid Scheme Guide</a> — know your rights<br>
-            • <a href="https://www.ftc.gov/news-events/topics/pyramid-schemes" target="_blank">FTC Pyramid Scheme Resources</a> — file a complaint<br>
-            • If you're supporting a loved one: <a href="https://www.cultrecovery101.com" target="_blank">Cult Recovery 101</a> has resources specifically for helping someone exit a high-control group
+            • <a href="https://www.reddit.com/r/antiMLM/" target="_blank" rel="noopener noreferrer">r/antiMLM</a> — community of survivors and researchers<br>
+            • <a href="https://www.bbb.org/article/news-releases/23068-is-it-a-pyramid-scheme" target="_blank" rel="noopener noreferrer">BBB Pyramid Scheme Guide</a> — know your rights<br>
+            • <a href="https://www.ftc.gov/news-events/topics/pyramid-schemes" target="_blank" rel="noopener noreferrer">FTC Pyramid Scheme Resources</a> — file a complaint<br>
+            • If you're supporting a loved one: <a href="https://www.cultrecovery101.com" target="_blank" rel="noopener noreferrer">Cult Recovery 101</a> has resources specifically for helping someone exit a high-control group
           </div>
         </div>
       </div>
