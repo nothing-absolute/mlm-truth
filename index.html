@@ -1103,14 +1103,62 @@ footer{border-top:1px solid var(--border);text-align:center;padding:2rem;font-si
 
 <script>
 // ═══════════════════════════════════════════
+// GLOBAL ERROR HANDLER
+// ═══════════════════════════════════════════
+window.addEventListener('error', function(event) {
+  var msg = event.message || 'Unknown error';
+  var src = event.filename ? ' in ' + event.filename + ':' + event.lineno : '';
+  console.error('[MLM-Truth] Uncaught error: ' + msg + src);
+});
+window.addEventListener('unhandledrejection', function(event) {
+  console.error('[MLM-Truth] Unhandled promise rejection:', event.reason);
+});
+
+// ═══════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════
 function formatBig(n){
+  if(!isFinite(n) || n == null) return '0';
   if(n>=1e12)return(n/1e12).toFixed(1)+'T';
   if(n>=1e9)return(n/1e9).toFixed(1)+'B';
   if(n>=1e6)return(n/1e6).toFixed(1)+'M';
   if(n>=1e3)return(n/1e3).toFixed(1)+'K';
   return Math.round(n).toString();
+}
+function safeGetElement(id) {
+  var el = document.getElementById(id);
+  if (!el) console.error('[MLM-Truth] Missing element: #' + id);
+  return el;
+}
+function safeParseInt(val, fallback) {
+  var n = parseInt(val, 10);
+  return isNaN(n) ? (fallback || 0) : n;
+}
+function safeParseFloat(val, fallback) {
+  var n = parseFloat(val);
+  return isNaN(n) ? (fallback || 0) : n;
+}
+function safeDivide(numerator, denominator, fallback) {
+  if (!denominator || !isFinite(denominator)) return fallback || 0;
+  return numerator / denominator;
+}
+function safeRoundRect(ctx, x, y, w, h, r) {
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -1118,8 +1166,16 @@ function formatBig(n){
 // ═══════════════════════════════════════════
 (function(){
   const canvas=document.getElementById('hero-canvas');
-  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  if (!canvas) { console.error('[MLM-Truth] Hero canvas not found'); return; }
+  if (typeof THREE === 'undefined') { console.error('[MLM-Truth] Three.js failed to load — hero animation disabled'); return; }
+  let renderer;
+  try {
+    renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  } catch(e) {
+    console.error('[MLM-Truth] WebGL not supported — hero animation disabled:', e.message);
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1,2));
   const scene=new THREE.Scene();
   const camera=new THREE.PerspectiveCamera(60,1,0.1,100);
   camera.position.z=30;
@@ -1155,11 +1211,13 @@ function formatBig(n){
 // PYRAMID
 // ═══════════════════════════════════════════
 const pyCanvas=document.getElementById('pyramid-canvas');
-const pyCtx=pyCanvas.getContext('2d');
+const pyCtx=pyCanvas ? pyCanvas.getContext('2d') : null;
 const recruitSlider=document.getElementById('recruit-slider');
 const levelSlider=document.getElementById('level-slider');
+if (!pyCanvas || !pyCtx) console.error('[MLM-Truth] Pyramid canvas or context not available');
 function drawPyramid(){
-  const factor=parseInt(recruitSlider.value),levels=parseInt(levelSlider.value);
+  if (!pyCtx || !recruitSlider || !levelSlider) return;
+  const factor=safeParseInt(recruitSlider.value, 5),levels=safeParseInt(levelSlider.value, 5);
   const rows=[];for(let l=0;l<=levels;l++)rows.push(Math.pow(factor,l));
   const maxPeople=rows[rows.length-1];
   const W=pyCanvas.width=pyCanvas.offsetWidth,H=pyCanvas.height=pyCanvas.offsetHeight;
@@ -1169,13 +1227,13 @@ function drawPyramid(){
   rows.forEach((count,i)=>{
     const frac=count/maxPeople,barW=Math.max(frac*(W-40),8),x=(W-barW)/2,y=20+i*rowH;
     pyCtx.fillStyle=colors[Math.min(i,colors.length-1)];
-    pyCtx.beginPath();pyCtx.roundRect(x,y,barW,rowH-3,2);pyCtx.fill();
+    safeRoundRect(pyCtx,x,y,barW,rowH-3,2);pyCtx.fill();
     pyCtx.fillStyle='#e8e8f0';pyCtx.font=`${Math.min(11,rowH*0.45)}px "Space Mono",monospace`;pyCtx.textAlign='center';pyCtx.textBaseline='middle';
     if(barW>50)pyCtx.fillText(i===0?'L0: YOU (Founder)':'L'+i+': '+formatBig(count),W/2,y+rowH/2-1.5);
   });
   const atLevel=rows[levels];let below=0;for(let l=levels+1;l<=levels+3;l++)below+=Math.pow(factor,l);
   let total=0;for(let l=0;l<=levels;l++)total+=rows[l];
-  const abovePct=((total-atLevel)/total*100).toFixed(1);
+  const abovePct=(safeDivide(total-atLevel, total, 0)*100).toFixed(1);
   document.getElementById('recruit-val').textContent=factor+' recruits';
   document.getElementById('level-val').textContent='Level '+levels;
   document.getElementById('level-people-label').textContent=formatBig(atLevel)+' people';
@@ -1191,13 +1249,15 @@ window.addEventListener('resize',()=>setTimeout(drawPyramid,50));drawPyramid();
 // WORLD SATURATION
 // ═══════════════════════════════════════════
 const worldCanvas=document.getElementById('world-canvas');
-const worldCtx=worldCanvas.getContext('2d');
+const worldCtx=worldCanvas ? worldCanvas.getContext('2d') : null;
+if (!worldCanvas || !worldCtx) console.error('[MLM-Truth] World canvas or context not available');
 const WORLD_POP=8_000_000_000,RECRUIT_FACTOR=5,MAX_LEVELS=20;
 const wData=(()=>{const d=[];let t=1;for(let l=1;l<=MAX_LEVELS;l++){const a=Math.pow(RECRUIT_FACTOR,l);t+=a;d.push({level:l,atLevel:a,total:t});}return d;})();
 let worldAnimFrame=null,currentLevel=0,worldAnimating=false;
 const satLv=(()=>{for(let i=0;i<wData.length;i++)if(wData[i].total>=WORLD_POP)return i+1;return MAX_LEVELS;})();
 document.getElementById('saturation-level-display').textContent=satLv;
 function drawWorld(upToLevel){
+  if (!worldCtx) return;
   const W=worldCanvas.width=worldCanvas.offsetWidth,H=380;worldCanvas.height=H;worldCtx.clearRect(0,0,W,H);
   const pad={l:60,r:20,t:30,b:50},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
   worldCtx.strokeStyle='#2a2a40';worldCtx.lineWidth=1;
@@ -1222,18 +1282,20 @@ window.addEventListener('resize',()=>drawWorld(currentLevel));drawWorld(0);
 // INVESTMENT CALC
 // ═══════════════════════════════════════════
 const investCanvas=document.getElementById('invest-canvas');
-const investCtx=investCanvas.getContext('2d');
+const investCtx=investCanvas ? investCanvas.getContext('2d') : null;
+if (!investCanvas || !investCtx) console.error('[MLM-Truth] Investment canvas or context not available');
 const iMonthly=document.getElementById('invest-monthly'),iYears=document.getElementById('invest-years');
 function calcInvestment(monthly,years,rate=0.07){const months=years*12,mr=rate/12,fv=monthly*((Math.pow(1+mr,months)-1)/mr),spent=monthly*months;return{fv:Math.round(fv),spent,diff:Math.round(fv-spent)};}
 function drawInvestment(){
-  const monthly=parseInt(iMonthly.value),years=parseInt(iYears.value);
+  if (!investCtx || !iMonthly || !iYears) return;
+  const monthly=safeParseInt(iMonthly.value, 150),years=safeParseInt(iYears.value, 10);
   document.getElementById('invest-monthly-val').textContent='$'+monthly+' / month';
   document.getElementById('invest-years-val').textContent=years+' year'+(years>1?'s':'');
   const W=investCanvas.width=investCanvas.offsetWidth,H=260;investCanvas.height=H;investCtx.clearRect(0,0,W,H);
   const pad={l:60,r:20,t:20,b:40},cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
   const spentData=[],investData=[];const maxY_ref=calcInvestment(monthly,years).fv;
   for(let y=0;y<=years;y++){spentData.push(monthly*12*y);investData.push(calcInvestment(monthly,y).fv);}
-  const maxVal=Math.max(maxY_ref,monthly*12*years);
+  const maxVal=Math.max(maxY_ref,monthly*12*years) || 1;
   investCtx.strokeStyle='#2a2a40';investCtx.lineWidth=1;
   for(let i=0;i<=4;i++){const y=pad.t+(i/4)*cH;investCtx.beginPath();investCtx.moveTo(pad.l,y);investCtx.lineTo(pad.l+cW,y);investCtx.stroke();investCtx.fillStyle='#555570';investCtx.font='8px "Space Mono"';investCtx.textAlign='right';investCtx.fillText('$'+formatBig(maxVal*(1-i/4)),pad.l-4,y+4);}
   function drawLine(data,color,fill){investCtx.beginPath();data.forEach((v,i)=>{const x=pad.l+(i/years)*cW,y=pad.t+cH-(v/maxVal)*cH;i===0?investCtx.moveTo(x,y):investCtx.lineTo(x,y);});if(fill){investCtx.lineTo(pad.l+cW,pad.t+cH);investCtx.lineTo(pad.l,pad.t+cH);investCtx.closePath();investCtx.fillStyle=fill;investCtx.fill();}investCtx.strokeStyle=color;investCtx.lineWidth=2.5;investCtx.stroke();}
@@ -1261,15 +1323,23 @@ const incomeData=[
   {level:'All Others (72%+)',pct:78,avg:'$0 (net loss)',color:'#4a0000'},
 ];
 const barsEl=document.getElementById('income-bars');
-incomeData.forEach(d=>{const row=document.createElement('div');row.className='income-row';row.innerHTML='<div class="income-level">'+d.level+'</div><div class="income-bar-track"><div class="income-bar-fill" data-width="'+d.pct+'" style="width:0%;background:'+d.color+';">'+d.avg+'</div></div><div class="income-pct">'+d.pct+'%</div>';barsEl.appendChild(row);});
-new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('.income-bar-fill').forEach((el,i)=>setTimeout(()=>el.style.width=Math.max(parseFloat(el.dataset.width),2)+'%',i*120));}});},{threshold:0.2}).observe(barsEl);
+if (barsEl) {
+  incomeData.forEach(d=>{const row=document.createElement('div');row.className='income-row';row.innerHTML='<div class="income-level">'+d.level+'</div><div class="income-bar-track"><div class="income-bar-fill" data-width="'+d.pct+'" style="width:0%;background:'+d.color+';">'+d.avg+'</div></div><div class="income-pct">'+d.pct+'%</div>';barsEl.appendChild(row);});
+  if (typeof IntersectionObserver !== 'undefined') {
+    new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('.income-bar-fill').forEach((el,i)=>setTimeout(()=>el.style.width=Math.max(parseFloat(el.dataset.width)||0,2)+'%',i*120));}});},{threshold:0.2}).observe(barsEl);
+  } else {
+    document.querySelectorAll('.income-bar-fill').forEach(el=>el.style.width=Math.max(parseFloat(el.dataset.width)||0,2)+'%');
+  }
+} else { console.error('[MLM-Truth] Income bars container not found'); }
 
 // ═══════════════════════════════════════════
 // BLAME LOOP CANVAS
 // ═══════════════════════════════════════════
 (function(){
   const bc=document.getElementById('blame-canvas');
+  if (!bc) { console.error('[MLM-Truth] Blame canvas not found'); return; }
   const ctx=bc.getContext('2d');
+  if (!ctx) { console.error('[MLM-Truth] Blame canvas context not available'); return; }
   const steps=[
     {label:'YOU JOIN',detail:'Excited. Dream is real.',color:'#f5c842',angle:0},
     {label:'BUY IN',detail:'Starter kit + inventory.',color:'#f5a623',angle:Math.PI*2/6},
@@ -1313,7 +1383,7 @@ new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){do
       const words=s.label.split(' ');
       words.forEach((w,wi)=>ctx.fillText(w,x,y+(wi-(words.length-1)/2)*r*0.3));
       if(isHov){
-        ctx.fillStyle='rgba(10,10,15,0.92)';ctx.beginPath();ctx.roundRect(x-80,y+r+6,160,28,4);ctx.fill();
+        ctx.fillStyle='rgba(10,10,15,0.92)';safeRoundRect(ctx,x-80,y+r+6,160,28,4);ctx.fill();
         ctx.fillStyle='#e8e8f0';ctx.font='9px "Space Mono"';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(s.detail,x,y+r+20);
       }
     });
@@ -1341,7 +1411,9 @@ new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){do
 // ═══════════════════════════════════════════
 (function(){
   const fc=document.getElementById('funnel-canvas');
+  if (!fc) { console.error('[MLM-Truth] Funnel canvas not found'); return; }
   const ctx=fc.getContext('2d');
+  if (!ctx) { console.error('[MLM-Truth] Funnel canvas context not available'); return; }
   const stages=[
     {label:'THE PITCH',sub:'Financial freedom awaits!',detail:'Aspirational language + fake urgency + cherry-picked testimonials from the top 0.01%. Real psychology: social proof, FOMO, and manufactured scarcity.',color:'#9b59b6',emoji:'✨'},
     {label:'THE BUY-IN',sub:'Starter kit + first inventory',detail:'$500–$2,000 upfront. Now you\'re an "entrepreneur." Identity shifts immediately. Sunk cost begins. You\'ve got skin in the game.',color:'#f5c842',emoji:'💸'},
@@ -1371,7 +1443,7 @@ new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){do
         ctx.fillStyle='rgba(0,0,0,0.9)';
         const dw=Math.min(W*0.75,520),dh=56,dx=(W-dw)/2;
         let dy=y+stageH+4;if(dy>H-70)dy=y-64;
-        ctx.beginPath();ctx.roundRect(dx,dy,dw,dh,4);ctx.fill();
+        safeRoundRect(ctx,dx,dy,dw,dh,4);ctx.fill();
         ctx.strokeStyle=s.color;ctx.lineWidth=1;ctx.stroke();
         ctx.fillStyle='#e8e8f0';ctx.font='9px "Space Mono",monospace';ctx.textAlign='center';
         const words=s.detail.split(' ');let line='',lines=[],ty=dy+12;
@@ -1398,7 +1470,8 @@ const qsItems=[
   {label:'Printing, websites, biz tools',min:0,max:400,val:80,unit:'$/yr'},
 ];
 const qsGrid=document.getElementById('qs-grid');
-qsItems.forEach((item,i)=>{
+if (!qsGrid) console.error('[MLM-Truth] Quicksand grid container not found');
+if (qsGrid) qsItems.forEach((item,i)=>{
   const el=document.createElement('div');el.className='debt-meter';
   el.innerHTML='<div class="debt-meter-label">'+item.label+'</div><div class="debt-bar-track"><div class="debt-bar-fill" id="qb'+i+'" style="width:'+((item.val-item.min)/(item.max-item.min)*100)+'%;"></div></div><input type="range" id="qs'+i+'" min="'+item.min+'" max="'+item.max+'" value="'+item.val+'" step="'+Math.max(10,Math.round((item.max-item.min)/30))+'" style="width:100%;margin-top:0.5rem;"><div style="display:flex;justify-content:space-between;margin-top:0.3rem;"><div class="debt-amount" id="qa'+i+'">$'+item.val+'</div><div class="debt-note">'+item.unit+'</div></div>';
   qsGrid.appendChild(el);
@@ -1406,12 +1479,18 @@ qsItems.forEach((item,i)=>{
 function updateQS(){
   let total=0;
   qsItems.forEach((item,i)=>{
-    const v=parseInt(document.getElementById('qs'+i).value);
-    document.getElementById('qa'+i).textContent='$'+v.toLocaleString();
-    document.getElementById('qb'+i).style.width=((v-item.min)/(item.max-item.min)*100)+'%';
+    const sliderEl=document.getElementById('qs'+i);
+    const amountEl=document.getElementById('qa'+i);
+    const barEl=document.getElementById('qb'+i);
+    if (!sliderEl) return;
+    const v=safeParseInt(sliderEl.value, item.val);
+    if (amountEl) amountEl.textContent='$'+v.toLocaleString();
+    const range = item.max - item.min;
+    if (barEl) barEl.style.width=(safeDivide(v-item.min, range, 0)*100)+'%';
     total+=item.unit==='$/mo'?v*12:item.unit==='$/yr'?v:v;
   });
-  document.getElementById('qs-total').textContent='$'+total.toLocaleString();
+  const totalEl=document.getElementById('qs-total');
+  if (totalEl) totalEl.textContent='$'+total.toLocaleString();
 }
 qsItems.forEach((_,i)=>document.getElementById('qs'+i).oninput=updateQS);
 updateQS();
@@ -1498,10 +1577,12 @@ renderQuiz();
 // ═══════════════════════════════════════════
 const sClose=document.getElementById('s-close'),sAcquaint=document.getElementById('s-acquaint');
 const sMonths=document.getElementById('s-months'),sMsgs=document.getElementById('s-msgs');
-const socialCanvas=document.getElementById('social-canvas'),socialCtx=socialCanvas.getContext('2d');
+const socialCanvas=document.getElementById('social-canvas'),socialCtx=socialCanvas ? socialCanvas.getContext('2d') : null;
+if (!socialCanvas || !socialCtx) console.error('[MLM-Truth] Social canvas or context not available');
 function calcSocial(){
-  const close=parseInt(sClose.value),acquaint=parseInt(sAcquaint.value);
-  const months=parseInt(sMonths.value),msgs=parseInt(sMsgs.value);
+  if (!sClose || !sAcquaint || !sMonths || !sMsgs) return;
+  const close=safeParseInt(sClose.value, 8),acquaint=safeParseInt(sAcquaint.value, 40);
+  const months=safeParseInt(sMonths.value, 18),msgs=safeParseInt(sMsgs.value, 10);
   document.getElementById('s-close-val').textContent=close+' people';
   document.getElementById('s-acquaint-val').textContent=acquaint+' people';
   document.getElementById('s-months-val').textContent=months+' months';
@@ -1528,6 +1609,7 @@ function calcSocial(){
   drawRelGrid(close,acquaint,closePitched,lostClose);
 }
 function drawSocialChart(close,acquaint,closePitched,acquaintPitched,lostClose){
+  if (!socialCtx) return;
   const W=socialCanvas.width=socialCanvas.offsetWidth,H=300;socialCanvas.height=H;socialCtx.clearRect(0,0,W,H);
   const data=[
     {label:'Close\n(safe)',val:close-closePitched,color:'#2ecc71'},
@@ -1551,7 +1633,9 @@ function drawSocialChart(close,acquaint,closePitched,acquaintPitched,lostClose){
   });
 }
 function drawRelGrid(close,acquaint,closePitched,lostClose){
-  const grid=document.getElementById('rel-grid');grid.innerHTML='';
+  const grid=document.getElementById('rel-grid');
+  if (!grid) return;
+  grid.innerHTML='';
   const total=Math.min(close+acquaint,80);
   const closeEmojis=['👨‍👩‍👧','👫','🤝','🧑‍🤝‍🧑','👩','👨','🧑'];
   const acqEmojis=['🧑‍💼','👤','💁','👩‍💼','🤵'];
@@ -1579,6 +1663,10 @@ window.addEventListener('resize',()=>setTimeout(calcSocial,50));calcSocial();
 (function(){
   const bar = document.getElementById('ai-mult-bar');
   if(!bar) return;
+  if (typeof IntersectionObserver === 'undefined') {
+    document.querySelectorAll('.ai-mult-ai').forEach(el => { el.style.opacity = '1'; el.style.width = el.dataset.w; });
+    return;
+  }
   const obs = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if(e.isIntersecting){
@@ -1698,27 +1786,47 @@ function rescueBack(from){ setRescueStep(from-1); }
 
 function generateReport(){
   const mlmName  = window._rescueMlm || 'Your MLM';
-  const who      = document.getElementById('r-who').value;
-  const months   = parseInt(document.getElementById('r-months').value) || 18;
-  const hrsWeek  = parseInt(document.getElementById('r-hrs-week').value) || 15;
-  const buyin    = parseFloat(document.getElementById('r-buyin').value) || 0;
-  const events   = parseFloat(document.getElementById('r-events').value) || 0;
-  const training = parseFloat(document.getElementById('r-training').value) || 0;
-  const closeP   = parseInt(document.getElementById('r-close-pitched').value) || 0;
-  const damaged  = parseInt(document.getElementById('r-damaged').value) || 0;
-  const dream    = document.getElementById('r-dream').value.trim();
-  const lost     = document.getElementById('r-lost').value;
-  const feeling  = document.getElementById('r-feeling').value;
-  const name     = document.getElementById('r-name').value.trim() || (who==='me' ? 'Friend' : 'Your loved one');
+  const whoEl = document.getElementById('r-who');
+  const monthsEl = document.getElementById('r-months');
+  const hrsEl = document.getElementById('r-hrs-week');
+  const buyinEl = document.getElementById('r-buyin');
+  const eventsEl = document.getElementById('r-events');
+  const trainingEl = document.getElementById('r-training');
+  const closePEl = document.getElementById('r-close-pitched');
+  const damagedEl = document.getElementById('r-damaged');
+  const dreamEl = document.getElementById('r-dream');
+  const lostEl = document.getElementById('r-lost');
+  const feelingEl = document.getElementById('r-feeling');
+  const nameEl = document.getElementById('r-name');
+  if (!whoEl || !monthsEl || !hrsEl || !buyinEl || !eventsEl || !trainingEl || !closePEl || !damagedEl || !dreamEl || !lostEl || !feelingEl || !nameEl) {
+    console.error('[MLM-Truth] Rescue report: one or more form elements missing');
+    return;
+  }
+  const who      = whoEl.value;
+  const months   = safeParseInt(monthsEl.value, 18);
+  const hrsWeek  = safeParseInt(hrsEl.value, 15);
+  const buyin    = safeParseFloat(buyinEl.value, 0);
+  const events   = safeParseFloat(eventsEl.value, 0);
+  const training = safeParseFloat(trainingEl.value, 0);
+  const closeP   = safeParseInt(closePEl.value, 0);
+  const damaged  = safeParseInt(damagedEl.value, 0);
+  const dream    = dreamEl.value.trim();
+  const lost     = lostEl.value;
+  const feeling  = feelingEl.value;
+  const name     = nameEl.value.trim() || (who==='me' ? 'Friend' : 'Your loved one');
 
   // Collect products
   let monthlyMlm = 0, monthlyRetail = 0;
   document.querySelectorAll('.product-row').forEach(row => {
     const pid = row.id.replace('pr-','');
-    const p = parseFloat(document.getElementById('pprice'+pid)?.value) || 0;
-    const r = parseFloat(document.getElementById('pretail'+pid)?.value) || 0;
+    const priceEl = document.getElementById('pprice'+pid);
+    const retailEl = document.getElementById('pretail'+pid);
+    const p = safeParseFloat(priceEl ? priceEl.value : '0', 0);
+    const r = safeParseFloat(retailEl ? retailEl.value : '0', 0);
     monthlyMlm += p;
-    monthlyRetail += r || (p / (retailMarkup[mlmData[mlmName]?.category || 'nutrition'] || 3));
+    const category = mlmData[mlmName] ? mlmData[mlmName].category : 'nutrition';
+    const markup = retailMarkup[category] || 3;
+    monthlyRetail += r || safeDivide(p, markup, 0);
   });
   const monthlyTraining = training;
   const totalMonthly = monthlyMlm + monthlyTraining;
@@ -1929,9 +2037,12 @@ function generateReport(){
 }
 
 function restartRescue(){
-  document.getElementById('r-mlm-select').value = '';
-  document.getElementById('r-mlm-other-wrap').style.display = 'none';
-  document.getElementById('product-list').innerHTML = '';
+  var mlmSel = document.getElementById('r-mlm-select');
+  var otherWrap = document.getElementById('r-mlm-other-wrap');
+  var prodList = document.getElementById('product-list');
+  if (mlmSel) mlmSel.value = '';
+  if (otherWrap) otherWrap.style.display = 'none';
+  if (prodList) prodList.innerHTML = '';
   productRows = []; productCount = 0;
   selectedLevel = 0;
   document.querySelectorAll('.lvl-btn').forEach((b,i) => b.classList.toggle('selected', i===0));
